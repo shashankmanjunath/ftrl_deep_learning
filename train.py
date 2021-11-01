@@ -78,8 +78,9 @@ class Trainer:
 
                 acc = (preds == labels).float().mean()
                 tq.set_postfix({"loss": loss.item(), "accuracy": acc.item()})
-                self.writer.add_scalar("train/loss", loss.item(), epoch*len(self.train_loader) + i)
-                self.writer.add_scalar("train/acc", acc.item(), epoch*len(self.train_loader) + i)
+                step = epoch*len(self.train_loader) + i
+                self.writer.add_scalar("train/loss", loss.item(), step)
+                self.writer.add_scalar("train/acc", acc.item(), step)
 
             eval_acc = self.eval(epoch)
             self.scheduler.step(eval_acc)
@@ -87,7 +88,7 @@ class Trainer:
     def eval(self, epoch):
         with torch.no_grad():
             self.model.eval()
-            tq = tqdm(self.test_loader, desc=f"Testing [{epoch+1}/{self.num_epochs}]")
+            tq = tqdm(self.test_loader, desc=f"Testing  [{epoch+1}/{self.num_epochs}]")
 
             loss_arr = []
             acc_arr = []
@@ -106,8 +107,8 @@ class Trainer:
                 loss_arr.append(loss.item())
                 tq.set_postfix({"test_loss": np.mean(loss_arr), "test_acc": np.mean(acc_arr)})
 
-            self.writer.add_scalar("train/loss", np.mean(loss_arr), epoch)
-            self.writer.add_scalar("train/acc", np.mean(acc_arr), epoch)
+            self.writer.add_scalar("test/loss", np.mean(loss_arr), epoch)
+            self.writer.add_scalar("test/acc", np.mean(acc_arr), epoch)
         return np.mean(acc_arr)
 
 
