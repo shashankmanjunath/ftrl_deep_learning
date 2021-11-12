@@ -5,6 +5,7 @@ from tqdm import tqdm
 from fire import Fire
 
 import torchvision.transforms as transforms
+import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.models
 import torch.nn as nn
@@ -18,12 +19,24 @@ class Trainer:
         self.run_name = run_name
         self.save_dir = os.path.join("runs", self.run_name)
 
-        self.transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+        self.train_transform = transforms.Compose([
+            torchvision.transforms.RandomCrop(32, padding=4),
+            torchvision.transforms.RandomHorizontalFlip(),
+            torchvision.transforms.ToTensor(),
+            transforms.Normalize(
+                mean=[x / 255.0 for x in [125.3, 123.0, 113.9]],
+                std=[x / 255.0 for x in [63.0, 62.1, 66.7]],
+            )
+        ])
+        self.test_transform = transforms.Compose([
+            torchvision.transforms.ToTensor(),
+            transforms.Normalize(
+                mean=[x / 255.0 for x in [125.3, 123.0, 113.9]],
+                std=[x / 255.0 for x in [63.0, 62.1, 66.7]],
+            )
         ])
 
-        self.batch_size = 256
+        self.batch_size = 64
         self.num_epochs = 300
 
         self.device = torch.device("cpu")
@@ -31,26 +44,31 @@ class Trainer:
             self.device = torch.device("cuda")
 
         self.train_dataset = torchvision.datasets.CIFAR10(
-            root="./data", train=True, download=False, transform=self.transform
+            root="./data", train=True, download=False, transform=self.train_transform
         )
         self.train_loader = torch.utils.data.DataLoader(
             self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=4, pin_memory=True,
         )
 
         self.test_dataset = torchvision.datasets.CIFAR10(
-            root="./data", train=False, download=False, transform=self.transform
+            root="./data", train=False, download=False, transform=self.test_transform
         )
         self.test_loader = torch.utils.data.DataLoader(
             self.test_dataset, batch_size=self.batch_size, shuffle=False, num_workers=4, pin_memory=True
         )
 
-        self.model = torchvision.models.resnet152(pretrained=False, progress=False)
-        self.model.fc = nn.Linear(in_features=self.model.fc.in_features, out_features=10, bias=True)
+        self.model = torchvision.models.resnet152(pretrained=False, progress=False, num_classes=10)
+        self.model.conv1 = nn.Conv2d(3, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        self.model.maxpool = nn.Identity()
         self.model = self.model.to(self.device)
 
-        self.criterion = nn.CrossEntropyLoss()
+        self.criterion = nn.NLLLoss()
         self.optimizer = optim.SGD(self.model.parameters(), lr=0.1, momentum=0.9, weight_decay=0.0001)
-        self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, mode="max")
+
+        self.steps_per_epoch = 45000 // self.batch_size
+        self.scheduler = torch.optim.lr_scheduler.OneCycleLR(
+            self.optimizer, max_lr=0.1, epochs=self.num_epochs, steps_per_epoch=self.steps_per_epoch,
+        )
 
         self.writer = SummaryWriter(self.save_dir)
 
@@ -67,14 +85,15 @@ class Trainer:
 
                 self.optimizer.zero_grad()
 
-                outputs = self.model(inputs)
-                preds = torch.argmax(outputs, axis=-1)
+                logits = F.log_softmax(self.model(inputs), dim=1)
+                preds = torch.argmax(logits, axis=-1)
 
-                loss = self.criterion(outputs, labels)
+                loss = self.criterion(logits, labels)
                 epoch_loss.append(loss.item())
 
                 loss.backward()
                 self.optimizer.step()
+                self.scheduler.step()
 
                 acc = (preds == labels).float().mean()
                 tq.set_postfix({"loss": loss.item(), "accuracy": acc.item()})
@@ -82,8 +101,7 @@ class Trainer:
                 self.writer.add_scalar("train/loss", loss.item(), step)
                 self.writer.add_scalar("train/acc", acc.item(), step)
 
-            eval_acc = self.eval(epoch)
-            self.scheduler.step(eval_acc)
+            self.eval(epoch)
 
     def eval(self, epoch):
         with torch.no_grad():
@@ -98,12 +116,12 @@ class Trainer:
                 inputs = inputs.to(self.device)
                 labels = labels.to(self.device)
 
-                outputs = self.model(inputs)
-                preds = torch.argmax(outputs, axis=-1)
+                logits = F.log_softmax(self.model(inputs), dim=1)
+                preds = torch.argmax(logits, axis=-1)
 
                 acc_arr += (preds == labels).detach().cpu().numpy().astype(int).tolist()
 
-                loss = self.criterion(outputs, labels)
+                loss = self.criterion(logits, labels)
                 loss_arr.append(loss.item())
                 tq.set_postfix({"test_loss": np.mean(loss_arr), "test_acc": np.mean(acc_arr)})
 
