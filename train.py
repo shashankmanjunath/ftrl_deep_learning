@@ -13,9 +13,11 @@ import numpy as np
 import torchvision
 import torch
 
+from mda_optimizer import MDAOptimizer
+
 
 class Trainer:
-    def __init__(self, run_name):
+    def __init__(self, run_name, optim_name):
         self.run_name = run_name
         self.save_dir = os.path.join("runs", self.run_name)
 
@@ -63,13 +65,24 @@ class Trainer:
         self.model = self.model.to(self.device)
 
         self.criterion = nn.NLLLoss()
-        self.optimizer = optim.SGD(self.model.parameters(), lr=0.1, momentum=0.9, weight_decay=0.0001)
+
+        if optim_name == "sgd":
+            self.optimizer = optim.SGD(self.model.parameters(), lr=0.1, momentum=0.9, weight_decay=0.0001)
+        elif optim_name == "mda":
+            self.optimizer = MDAOptimizer(self.model.parameters())
+        else:
+            raise RuntimeError(f"Optimizer {optim_name} not recognized")
 
         self.steps_per_epoch = 45000 // self.batch_size
-        self.scheduler = torch.optim.lr_scheduler.OneCycleLR(
-            self.optimizer, max_lr=0.1, epochs=self.num_epochs, steps_per_epoch=self.steps_per_epoch,
-        )
 
+        self.scheduler = None
+        if self.optimizer == optim.SGD:
+            #  self.scheduler = torch.optim.lr_scheduler.OneCycleLR(
+            #      self.optimizer, max_lr=0.1, epochs=self.num_epochs, steps_per_epoch=self.steps_per_epoch,
+            #  )
+            self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=[150, 225], gamma=0.1)
+
+        self.best_test_acc = -1
         self.writer = SummaryWriter(self.save_dir)
 
     def train(self):
@@ -93,7 +106,6 @@ class Trainer:
 
                 loss.backward()
                 self.optimizer.step()
-                self.scheduler.step()
 
                 acc = (preds == labels).float().mean()
                 tq.set_postfix({"loss": loss.item(), "accuracy": acc.item()})
@@ -101,7 +113,15 @@ class Trainer:
                 self.writer.add_scalar("train/loss", loss.item(), step)
                 self.writer.add_scalar("train/acc", acc.item(), step)
 
+            torch.save({
+                "state_dict": self.model.state_dict(),
+                "optim_state_dict": self.optimizer.state_dict(),
+            }, os.path.join(self.save_dir, "last_model.pth"))
+
             self.eval(epoch)
+
+            if self.scheduler:
+                self.scheduler.step()
 
     def eval(self, epoch):
         with torch.no_grad():
@@ -127,11 +147,18 @@ class Trainer:
 
             self.writer.add_scalar("test/loss", np.mean(loss_arr), epoch)
             self.writer.add_scalar("test/acc", np.mean(acc_arr), epoch)
+
+        if np.mean(acc_arr) > self.best_test_acc:
+            torch.save({
+                "state_dict": self.model.state_dict(),
+                "optim_state_dict": self.optimizer.state_dict(),
+            }, os.path.join(self.save_dir, "best_model.pth"))
+            self.best_test_acc = np.mean(acc_arr)
         return np.mean(acc_arr)
 
 
-def main(name):
-    x = Trainer(run_name=name)
+def main(name, optim):
+    x = Trainer(run_name=name, optim_name=optim.lower())
     x.train()
 
 
