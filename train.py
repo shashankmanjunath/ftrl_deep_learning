@@ -25,20 +25,14 @@ class Trainer:
             torchvision.transforms.RandomCrop(32, padding=4),
             torchvision.transforms.RandomHorizontalFlip(),
             torchvision.transforms.ToTensor(),
-            transforms.Normalize(
-                mean=[x / 255.0 for x in [125.3, 123.0, 113.9]],
-                std=[x / 255.0 for x in [63.0, 62.1, 66.7]],
-            )
+            transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
         ])
         self.test_transform = transforms.Compose([
             torchvision.transforms.ToTensor(),
-            transforms.Normalize(
-                mean=[x / 255.0 for x in [125.3, 123.0, 113.9]],
-                std=[x / 255.0 for x in [63.0, 62.1, 66.7]],
-            )
+            transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
         ])
 
-        self.batch_size = 64
+        self.batch_size = 128
         self.num_epochs = 300
 
         self.device = torch.device("cpu")
@@ -46,7 +40,7 @@ class Trainer:
             self.device = torch.device("cuda")
 
         self.train_dataset = torchvision.datasets.CIFAR10(
-            root="./data", train=True, download=False, transform=self.train_transform
+            root="./data", train=True, download=True, transform=self.train_transform
         )
         self.train_loader = torch.utils.data.DataLoader(
             self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=4, pin_memory=True,
@@ -69,18 +63,11 @@ class Trainer:
         if optim_name == "sgd":
             self.optimizer = optim.SGD(self.model.parameters(), lr=0.1, momentum=0.9, weight_decay=0.0001)
         elif optim_name == "mda":
-            self.optimizer = MDAOptimizer(self.model.parameters())
+            self.optimizer = MDAOptimizer(self.model.parameters(), lr=1e-4, momentum=0.9)
         else:
             raise RuntimeError(f"Optimizer {optim_name} not recognized")
 
-        self.steps_per_epoch = 45000 // self.batch_size
-
-        self.scheduler = None
-        if self.optimizer == optim.SGD:
-            #  self.scheduler = torch.optim.lr_scheduler.OneCycleLR(
-            #      self.optimizer, max_lr=0.1, epochs=self.num_epochs, steps_per_epoch=self.steps_per_epoch,
-            #  )
-            self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=[150, 225], gamma=0.1)
+        self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=[150, 225], gamma=0.1)
 
         self.best_test_acc = -1
         self.writer = SummaryWriter(self.save_dir)
