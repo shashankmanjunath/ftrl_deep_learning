@@ -22,19 +22,23 @@ class Trainer:
         self.save_dir = os.path.join("runs", self.run_name)
 
         self.train_transform = transforms.Compose([
-            torchvision.transforms.RandomCrop(32, padding=4),
             torchvision.transforms.RandomHorizontalFlip(),
+            torchvision.transforms.RandomCrop(32, padding=4),
             torchvision.transforms.ToTensor(),
             transforms.Normalize(
-                mean=[x / 255.0 for x in [125.3, 123.0, 113.9]],
-                std=[x / 255.0 for x in [63.0, 62.1, 66.7]],
+                #  mean=[x / 255.0 for x in [125.3, 123.0, 113.9]],
+                #  std=[x / 255.0 for x in [63.0, 62.1, 66.7]],
+                mean=(0.5, 0.5, 0.5),
+                std=(0.5, 0.5, 0.5),
             )
         ])
         self.test_transform = transforms.Compose([
             torchvision.transforms.ToTensor(),
             transforms.Normalize(
-                mean=[x / 255.0 for x in [125.3, 123.0, 113.9]],
-                std=[x / 255.0 for x in [63.0, 62.1, 66.7]],
+                #  mean=[x / 255.0 for x in [125.3, 123.0, 113.9]],
+                #  std=[x / 255.0 for x in [63.0, 62.1, 66.7]],
+                mean=(0.5, 0.5, 0.5),
+                std=(0.5, 0.5, 0.5),
             )
         ])
 

@@ -10,7 +10,6 @@ class MDAOptimizer(Optimizer):
             raise ValueError("Learning rate must be greater than 0")
         defaults = {"lr": lr}
         super().__init__(params, defaults)
-        pass
 
     def step(self, closure=None):
         for group in self.param_groups:
@@ -29,7 +28,7 @@ class MDAOptimizer(Optimizer):
                     state["s"] = torch.zeros(p.grad.shape).to(p.device)
                     state["z"] = p.data
                     state["step"] = 0
-                
+
                 # Extracting learning rate and step count
                 lr = group["lr"]
                 k = state["step"]
@@ -47,6 +46,7 @@ class MDAOptimizer(Optimizer):
                 state["s"].add_(lambda_k * grad)
 
                 # Update dual averaging iterate z_{k+1}
+                # TODO: Make this more efficient
                 z_k_1 = state["z"] - state["s"] / beta_k
 
                 # Update averaged iterate
