@@ -13,6 +13,7 @@ import numpy as np
 import torchvision
 import torch
 
+from madgrad_optimizer import MADGRADOptimizer
 from mda_optimizer import MDAOptimizer
 
 
@@ -32,7 +33,8 @@ class Trainer:
             transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
         ])
 
-        self.batch_size = 128
+        #  self.batch_size = 128
+        self.batch_size = 64
         self.num_epochs = 300
 
         self.device = torch.device("cpu")
@@ -64,6 +66,8 @@ class Trainer:
             self.optimizer = optim.SGD(self.model.parameters(), lr=0.1, momentum=0.9, weight_decay=0.0001)
         elif optim_name == "mda":
             self.optimizer = MDAOptimizer(self.model.parameters(), lr=1e-4, momentum=0.9)
+        elif optim_name == "madgrad":
+            self.optimizer = MADGRADOptimizer(self.model.parameters(), lr=2.5e-4, momentum=0.9, weight_decay=0.0001)
         else:
             raise RuntimeError(f"Optimizer {optim_name} not recognized")
 
