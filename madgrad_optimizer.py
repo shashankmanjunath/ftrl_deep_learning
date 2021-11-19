@@ -14,13 +14,12 @@ class MADGRADOptimizer(Optimizer):
             raise ValueError("Weight decay must be greater than 0")
         if eps < 0:
             raise ValueError("Epsilon must be greater than 0")
-        defaults = {"lr": lr, "momentum": momentum, "weight_decay": weight_decay,"eps": eps}
+        defaults = {"lr": lr, "momentum": momentum, "weight_decay": weight_decay, "eps": eps}
         super().__init__(params, defaults)
 
-    @torch.no_grad()
     def step(self, closure=None):
         for group in self.param_groups:
-            for idx, p in enumerate(group["params"]):
+            for p in group["params"]:
                 if p.grad is None:
                     continue
 
@@ -32,9 +31,9 @@ class MADGRADOptimizer(Optimizer):
 
                 # Initializing s_k value for s_{-1}, x_0 parameter, and step counter
                 if len(state) == 0:
-                    state["s"] = torch.zeros(grad.shape, device=p.device)
-                    state["v"] = torch.zeros(grad.shape, device=p.device)
-                    state["z"] = p.data
+                    state["s"] = torch.zeros(grad.shape, device=p.device).detach()
+                    state["v"] = torch.zeros(grad.shape, device=p.device).detach()
+                    state["z"] = torch.clone(p.data).detach()
                     state["step"] = 0
 
                 # Extracting learning rate, step count, weight decay, and eps value
@@ -50,20 +49,20 @@ class MADGRADOptimizer(Optimizer):
                 lambda_k = lr * np.sqrt(k + 1)
 
                 # Update sum of gradients (s_{k+1})
-                state["s"].add_(lambda_k * grad)
+                state["s"].add_(grad, alpha=lambda_k)
 
                 # Updaing v_{k+1}
-                state["v"].add_(lambda_k * (grad * grad))
+                state["v"].addcmul_(grad, grad, value=lambda_k)
 
                 # Update dual averaging iterate z_{k+1}
-                iter_val = 1 / (torch.pow(state["v"], 1/3) + eps)
-                z_k_1 = state["z"] - (iter_val * state["s"])
+                iter_val = state["v"].pow(1/3).add_(eps)
+                z_k_1 = state["z"].addcdiv(state["s"], iter_val, value=-1)
 
                 # Extracting c_{k+1} parameter
                 c_k_1 = 1 - group["momentum"]
 
                 # Update averaged iterate
-                p.mul_(1 - c_k_1).add_(c_k_1 * z_k_1)
+                p.data.mul_(1 - c_k_1).add_(z_k_1, alpha=c_k_1)
 
                 # Update step counter
                 state["step"] += 1

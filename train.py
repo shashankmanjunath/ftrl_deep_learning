@@ -33,8 +33,7 @@ class Trainer:
             transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
         ])
 
-        #  self.batch_size = 128
-        self.batch_size = 64
+        self.batch_size = 128
         self.num_epochs = 300
 
         self.device = torch.device("cpu")
