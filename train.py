@@ -64,7 +64,7 @@ class Trainer:
         if optim_name == "sgd":
             self.optimizer = optim.SGD(self.model.parameters(), lr=0.1, momentum=0.9, weight_decay=0.0001)
         elif optim_name == "mda":
-            self.optimizer = MDAOptimizer(self.model.parameters(), lr=1e-4, momentum=0.9)
+            self.optimizer = MDAOptimizer(self.model.parameters(), lr=2.5e-4, momentum=0.9, weight_decay=0.0001)
         elif optim_name == "madgrad":
             self.optimizer = MADGRADOptimizer(self.model.parameters(), lr=2.5e-4, momentum=0.9, weight_decay=0.0001)
         else:

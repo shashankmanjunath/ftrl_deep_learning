@@ -5,12 +5,14 @@ import torch
 
 
 class MDAOptimizer(Optimizer):
-    def __init__(self, params, lr=1, momentum=0.9):
+    def __init__(self, params, lr=1, momentum=0.9, weight_decay=1e-4):
         if lr < 0:
             raise ValueError("Learning rate must be greater than 0")
         if momentum < 0:
             raise ValueError("Momentum must be greater than 0")
-        defaults = {"lr": lr, "momentum": momentum}
+        if weight_decay < 0:
+            raise ValueError("Weight decay must be greater than 0")
+        defaults = {"lr": lr, "momentum": momentum, "weight_decay": weight_decay}
         super().__init__(params, defaults)
 
     @torch.no_grad()
@@ -32,9 +34,13 @@ class MDAOptimizer(Optimizer):
                     state["z"] = p.data
                     state["step"] = 0
 
-                # Extracting learning rate and step count
+                # Extracting learning rate, weight_deacy, and step count
                 lr = group["lr"]
+                weight_decay = group["weight_decay"]
                 k = state["step"]
+
+                if weight_decay != 0:
+                    grad.add_(p.data, alpha=weight_decay)
 
                 # Extracting c_{k+1} parameter
                 c_k_1 = 1 - group["momentum"]
