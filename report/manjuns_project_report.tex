@@ -43,6 +43,7 @@
 \newtheorem{theorem}{Theorem}[section]
 \newtheorem{corollary}{Corollary}[theorem]
 \newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
 
 \newcommand{\R}{\mathbb{R}}
 \newcommand{\E}{\mathop{\mathbb{E}}}
@@ -101,7 +102,7 @@ prove an alternate, scale-free regret bound for the MADGRAD algorithm.
 
 \todo{\section{Algorithm Implementation}}
 
-So far, we have successfully replicated results on the CIFAR10 dataset for the MDA, MADGRAD, Adam, and Stochastic
+We have successfully replicated results on the CIFAR10 dataset for the MDA, MADGRAD, Adam, and Stochastic
 Gradient Descent with Momentum (SGD+M) algorithms. We show our test accuracy and test loss results in the plot below.
 
 \begin{figure}[H]
@@ -126,11 +127,6 @@ Our experiment setup and optimizer implementations for MDA and MADGRAD can be fo
 \url{https://github.com/shashankmanjunath/ftrl_deep_learning}.
 
 \section{Theory}
-
-While studying the convergence proof for the MADGRAD algorithm, we identified a potential improvement on the existing
-theory. 
-
-\todo{make above line sound more professional}
 
 When proving the convergence bound for MADGRAD, the authors require an alternative definition of
 MADGRAD than the one presented in the paper and implemented. In the original MADGRAD algorithm presented in the paper,
@@ -162,6 +158,8 @@ scale-free nature of the algorithm.
 
 \subsection{Proof of Scale-Free Regret Bound for MADGRAD}
 
+\todo{Talk about assumptions}
+
 Consider the MADGRAD algorithm. This algorithm implements FTRL with the regularizer: 
 
 \[
@@ -172,9 +170,28 @@ where $A_t = \diag(\alpha_t)$, and $\alpha_t = \sqrt[3]{\sum\limits_{i=1}^{t-1}\
 $\psi_t(\bx)$ is strongly-convex with respect to the norm $\| \cdot \|_{A_t}$. Let us denote the Bregman divergence of a
 function $f$ over two vectors $\bx, \by \in \R^D$ by $B_f(\bx; \by)$ and let $f^\star$ indicate the Fenchel conjugate of
 $f$. In order to prove the scale-free bound, we make the reduction that $c_t = 1$ for all rounds. This effectively
-removes the momentum operation, and leaves us with only FTRL iterates. Let us first define some useful lemmas.
+removes the momentum operation, and leaves us with only FTRL iterates. Let us first make a useful proposition.
 
-\begin{lemma}[Lemma 1 in \cite{orabona_generalized_2014}]
+\begin{proposition}[Proposition 2 in \cite{orabona_generalized_2014}: Properties of Fenchel Conjugates of Strongly
+  Convex Functions]\label{prop:1}
+  Let $K \subseteq V$ be a non-empty closed convex set. Let $\lambda \geq 0$, and let $f: K \rightarrow R$ be a lower
+  semi-continuous function that is $\lambda$-strongly convex with respect to $\| \cdot \|$. The Fenchel conjugate of f
+  satisfies:
+
+  \begin{enumerate}
+    \item $f^*$ is finite everywhere and differentiable
+    \item $\nabla f^* (\ell) = \argmin_{w \in K}(f(w) - \langle \ell, w \rangle)$
+    \item For any $\ell \in V^*$, $f^*(\ell) + f(\nabla f^*(\ell)) = \langle \ell, \nabla f^\star (\ell) \rangle$
+    \item $f^*$ is $\frac{1}{\lambda}$-strongly smooth, i.e. for any $x, y \in V^*$, $B_{f^*}(x, y) \leq
+      \frac{1}{2\lambda}\|x - y \|_*$
+    \item $f^*$ has $\frac{1}{\lambda}$-Lipschitz continuous gradients, i.e. $\| \nabla f^*(x) - \nabla f^*(y)\| \leq
+      \frac{1}{\lambda}\|x - y\|_*$ for any $x, y \in V^*$
+  \end{enumerate}
+\end{proposition}
+
+Let us now define some useful lemmas.
+
+\begin{lemma}[Lemma 1 in \cite{orabona_generalized_2014}] \label{lemma:1}
   Let $\{\psi_t\}_{t=1}^\infty$ be a sequence of functions defined on a common convex domain $S \subseteq \R^n$ and
   such that each $\psi_t$ is $\mu_t$-strongly convex with respect to the norm $\|\cdot\|_t$. Let $\|\cdot\|_{t, \star}$ be
   the dual norm of $\| \cdot \|_t$, for $t = 1, 2, \cdots, T$. Then, for any $\bu \in S$,
@@ -189,7 +206,7 @@ removes the momentum operation, and leaves us with only FTRL iterates. Let us fi
 \proof Given in (\cite{orabona_generalized_2014})
 \qed
 
-\begin{lemma}
+\begin{lemma} \label{lemma:2}
   Let $a_1, a_2, \cdots, a_t$ be non-negative real numbers. If $a_1 > 0$, then
   \[
     \sum\limits_{t=1}^T \frac{a_t}{\sqrt[3]{\sum\limits_{s=1}^t a_s}} \leq \frac{3}{2}\left(\sum\limits_{t=1}^T
@@ -220,12 +237,13 @@ Letting $\ell_i = a_i \forall i$ yields the lemma.
 
 \qed
 
-\begin{lemma}
-  Let $C, a_1, a_2, \cdots, a_T \geq 0$, and $\alpha \geq 1$. Then,
+\begin{lemma} \label{lemma:3}
+  Let $C, a_1, a_2, \cdots, a_T \geq 0$, and $\alpha \geq 1, \alpha \neq \min\limits_{t=1,2,\cdots,T}a_{t}^\frac{4}{3}$.
+  Then,
 
   \[
     \sum\limits_{t=1}^T \min \left\{ \frac{a_{t}^2}{\sqrt[3]{\sum\limits_{s=1}^{t-1} a_{s}^2}}, C a_t\right\} \leq
-    \frac{C \alpha}{\alpha - \left(\sum\limits_{s=1}^{t-1} a_{s}^2\right)^\frac{2}{3}} \max\limits_{t=1,2,\cdots,T} a_t
+    \frac{C \alpha}{\alpha - \min\limits_{t=1,2,\cdots,T}a_{t}^\frac{4}{3}} \max\limits_{t=1,2,\cdots,T} a_t
     + 2\sqrt[3]{1 + \alpha^2} \sqrt{\sum\limits_{s=1}^T a_{s}^3}
   \]
 \end{lemma}
@@ -273,33 +291,42 @@ Let $M_t = \max \{a_t, \cdots, a_t\}$. Note that in this case, $a_t = M_t$, and 
   \frac{C \alpha}{\alpha - A}\left(M_t - M_{t-1}\right)
 \]
 
+Further note that since $a_t \geq 0 \forall t$, $A = (\sum\limits_{s=1}^T a_{s}^2)^\frac{2}{3} \geq
+\min_{t=1,\cdots,T}a_{t}^\frac{4}{3}$. Let $B = \min_{t=1,\cdots,T}a_{t}^\frac{4}{3}$, Therefore,
+
+\[
+  \min \left\{ \frac{a_{t}^2}{\sqrt[3]{\sum\limits_{s=1}^{t-1} a_{s}^2}}, C a_t \right\} \leq 
+  \frac{C \alpha}{\alpha - B}\left(M_t - M_{t-1}\right)
+\]
+
 Therefore, combining the two cases, we have:
 
 \[
   \min \left\{ \frac{a_{t}^2}{\sqrt[3]{\sum\limits_{s=1}^{t-1} a_{s}^2}}, C a_t \right\} \leq \frac{C \alpha}{\alpha -
-  A}\left(M_t - M_{t-1}\right) + 2 \sqrt[3]{1 + \alpha^2}\left(\sqrt{\sum\limits_{s=1}^t a_{s}^3} -
+  B}\left(M_t - M_{t-1}\right) + 2 \sqrt[3]{1 + \alpha^2}\left(\sqrt{\sum\limits_{s=1}^t a_{s}^3} -
   \sqrt{\sum\limits_{s=1}^{t-1} a_{s}^3}\right)
 \]
 
 Therefore, summing from $t=1$ to $T$,
 
 \[
-  \sum\limits_{t=1}^T\min \left\{ \frac{a_{t}^2}{\sqrt[3]{\sum\limits_{s=1}^{t-1} a_{s}^2}}, C a_t \right\} \leq \frac{C \alpha}{\alpha -
-  A}\left(\max\limits_{t=1, \cdots, T} a_t\right) + 2 \sqrt[3]{1 + \alpha^2}\left(\sqrt{\sum\limits_{t=1}^T a_{t}^3}\right)
+  \sum\limits_{t=1}^T\min \left\{ \frac{a_{t}^2}{\sqrt[3]{\sum\limits_{s=1}^{t-1} a_{s}^2}}, C a_t \right\} \leq \frac{C
+  \alpha}{\alpha - B}\left(\max\limits_{t=1, \cdots, T} a_t\right) + 2 \sqrt[3]{1 +
+  \alpha^2}\left(\sqrt{\sum\limits_{t=1}^T a_{t}^3}\right)
 \]
 
 \qed
 
 Let us now state the overall convergence bound for our version of MADGRAD.
 
-\begin{theorem}
-  Suppose $K \subseteq \R^D$ is a non-empty closed convex subset. Suppose that a regularizer $\psi_t: K \rightarrow R$
+\begin{theorem} \label{theorem:1}
+  Suppose $K \subseteq \R^D$ is a non-empty closed convex subset. Suppose that a regularizer $\psi_t: K \rightarrow \R$
   is a non-negative lower semi-continuous function that is $\mu_t$ strongly convex with respect to a norm $\| \cdot
   \|_t$. The regret of non-momentumized MADGRAD satisfies:
 
   \begin{align*}
-    \Regret_T(u) \leq \sum\limits_{d=1}^D \left(\frac{\psi_d(u_d)}{\sqrt[3]{\sum\limits_{i=1}^{T} \lambda_i
-      g_{id}^2}}\right) + \frac{3}{2}\left(\sum\limits_{t=1}^T \lambda_t g_{td}^2\right)^\frac{2}{3} +& \frac{2
+    \Regret_T(u) \leq \sum\limits_{d=1}^D \frac{\psi_d(u_d)}{\sqrt[3]{\sum\limits_{i=1}^{T} \lambda_i
+      g_{id}^2}} + \frac{3}{2}\left(\sum\limits_{t=1}^T \lambda_t g_{td}^2\right)^\frac{2}{3} +& \frac{2
       \sqrt{T-1}\left(\sum_{i=1}^{t-1} \lambda_i g_{id}^2\right)}{1 - \left( \sum_{i=1}^{t-1} a_{i}^2
     \right)^\frac{2}{3}} \max_{t \leq T} \sqrt{\lambda_t}|g_{td}| \\ &+ 2\sqrt[3]{2}\sqrt{\sum\limits_{t-1}^T
     \lambda_t^\frac{3}{2} |g_{td}|^3}
@@ -322,12 +349,150 @@ Let $\eta_{t,d} = \frac{1}{\sqrt[3]{\sum\limits_{i=1}^{t-1} \lambda_i g_{id}^2}}
   \psi_d(\bx) &= \frac{1}{2} (\bx_d - \bx_{0,d})
 \end{align*}
 
-Since $A_t$ is a diagonal matrix, $\psi_t(\bx)$ is $\min_{D} \sqrt[3]{\sum\limits_{i=1}^{t-1} \lambda_i
+Since $A_t$ is a diagonal matrix, $\psi_t(\bx)$ is $\min\limits_{D} \sqrt[3]{\sum\limits_{i=1}^{t-1} \lambda_i
 g_{i}^2}$-strongly convex. We can tighten this bound by analyzing $\psi_{t,d}(\bx)$ and establishing a per-coordinate
 strong convexity bound. Recall that, since $\psi_d(\bx): \R \rightarrow \R$, we can find the strong convexity by finding
 the lower bound of the second derivative of $\psi_d(\bx)$.
 
+\begin{align*}
+  \frac{d \psi_d(\bx)}{d \bx_d} &= \bx_d - \bx_{0,d} \\
+  \frac{d^2 \psi_d(\bx)}{d \bx_d^2} &= 1
+\end{align*}
 
+Therefore, $\psi_d(\bx)$ is 1-strongly convex with respect to $| \cdot |$, as we are dealing with real numbers in the
+per-coordinate case. By Lemma 1, we have:
+
+\[
+  \Regret_T(\bu) \leq \psi_{T+1}(\bu) + \psi_{1}^\star (\textbf{0}) + \sum\limits_{t=1}^T B_{\psi_{t}^\star}(-L_t,
+  -L{t-1}) - \psi_{t}^\star (-L_t) + \psi_{t-1}^\star(-L_t)
+\]
+
+Writing this in a per-coordinate manner,
+
+\begin{align*}
+  \Regret_T(\bu) 
+  &\leq \sum\limits_{d=1}^D \psi_{T+1,d}(\bu) + \psi_{1,d}^\star (\textbf{0}) + \sum\limits_{t=1}^T
+  B_{\psi_{t,d}^\star}(-L_t, -L{t-1}) - \psi_{t,d}^\star (-L_t) + \psi_{t-1,d}^\star(-L_t) \\
+  &\leq \sum\limits_{d=1}^D \frac{1}{\eta_{T+1}}\psi_{d}(\bu) + \frac{1}{\eta_1}\psi_{d}^\star (\textbf{0}) + \sum\limits_{t=1}^T
+  B_{\psi_{t,d}^\star}(-L_t, -L{t-1}) - \psi_{t,d}^\star (-L_t) + \psi_{t-1,d}^\star(-L_t)
+\end{align*}
+
+Let us proceed by bounding $B_{\psi_{t,d}^\star}(-L_t, -L{t-1}) - \psi_{t,d}^\star (-L_t) + \psi_{t-1,d}^\star(-L_t)$ in
+two ways.
+
+\begin{enumerate}
+  \item By Proposition \ref{prop:1} item 4, we know that $B_{\psi_{t,d}^*}(-L_t, -L_{t-1}) \leq \frac{\eta_t \lambda_t
+    g_{t,d}^2}{2 \mu_{t,d}} = \frac{\eta_t \lambda_t g_{t,d}^2}{2}$. Therefore, by Lemma \ref{lemma:1}, we know that:
+
+    \[
+      B_{\psi_{t,d}^*)}(-L_t, -L_{t-1}) - \psi_{t,d}^*(-L_t) + \psi_{t+1,d}^*(-L_t) \leq B_{\psi_{t,d}^*}(-L_t,
+      -L_{t-1}) \leq \frac{\eta_t \lambda_t g_{t,d}^2}{2}
+    \]
+
+    \todo{since $\psi_{t,d}^* \geq \psi_{t+1,d}^*$}.
+  \item Similarly,
+
+    \begin{align*}
+      B_{\psi_{t,d}^*}(-L_t, -L_{t-1}) 
+      &- \psi_{t,d}^*(-L_t) + \psi_{t+1,d}^*(-L_t) = B_{\psi_{t+1,d}^*}(-L_t, -L_{t-1}) + \psi_{t+1,d}^*(-L_{t-1}) \\
+      & - \psi_{t,d}^*(-L_{t-1}) + \langle \nabla \psi_{t,d}^*(-L_{t-1}) - \nabla \psi_{t+1,d}^*(-L_{t-1},
+      g_{t,d}))\rangle \\
+      &\leq \frac{1}{2} \eta_{t+1,d}\lambda_t g_{t,d}^2 + | \nabla \psi_{t,d}^*(-L_{t-1}) - \nabla
+      \psi_{t+1,d}^*(-L_{t-1})| |g_{t,d}| \\
+      &\leq \frac{1}{2} \eta_{t+1,d}\lambda_t g_{t,d}^2 + | \nabla \psi_{d}^*(-\eta_{t,d} L_{t-1}) - \nabla
+      \psi_{d}^*(-\eta_{t+1}L_{t-1})| |g_{t,d}| \\
+      &\leq \frac{1}{2} \eta_{t+1,d}\lambda_t g_{t,d}^2 + |L_{t-1}|(\eta_{t,d} - \eta_{t+1,d})|g_{t,d}|
+    \end{align*}
+
+    Recall that $\eta_{t,d} = \frac{1}{\sqrt[3]{\sum\limits_{i=1}^{t-1} \lambda_i g_{id}^2}}$. Therefore,
+
+    \begin{align*}
+      |L_{t-1}|(\eta_{t,d} - \eta_{t+1,d}) 
+      &\leq |L_{t-1}|\eta_{t,d} = \frac{\sum_{i=1}^{t-1} \lambda_i g_{i,d}}{\sqrt[3]{\sum_{i=1}^{t-1}\lambda_i
+      g_{i,d}^2}} \\
+      &\leq \frac{\sqrt{(\sum_{i=1}^{t-1} \sqrt{\lambda_i} g_{i,d}
+      \sqrt{\lambda_i})^2}}{\sqrt[3]{\sum_{i=1}^{t-1} \lambda_i g_{i,d}^2}} \\
+      &\leq \frac{\sqrt{(\sum_{i=1}^{t-1} \lambda_i)(\sum_{i=1}^{t-1}\lambda_i g_{i,d}^2)}}{\sqrt[3]{\sum_{i=1}^{t-1} \lambda_i g_{i,d}^2}}
+    \end{align*}
+
+    By Callebaut's inequality. Therefore, we have:
+
+    \[
+      |L_{t-1}|(\eta_{t,d} - \eta_{t+1,d}) \leq \left(\sqrt{\sum_{i=1}^{t-1} \lambda_i}\right)\left(\sum_{i=1}^{t-1}\lambda_i
+      g_{i,d}^2\right)^\frac{2}{3}
+    \]
+\end{enumerate}
+
+Combining these two bounds, we have:
+
+\[
+  B_{\psi_{t,d}^*}(-L_t, -L_{t-1}) - \psi_{t,d}^*(-L_t) + \psi_{t+1,d}^*(-L_t) \leq \frac{\eta_t \lambda_t g_{t,d}^2}{2}
+  + \left(\sqrt{\sum_{i=1}^{t-1} \lambda_i}\right)\left(\sum_{i=1}^{t-1}\lambda_i g_{i,d}^2\right)^\frac{2}{3}
+\]
+
+Note that 
+\[
+  \sqrt{\sum\limits_{i=1}^{t-1}\lambda_i} \leq \sqrt{(t-1) \lambda_t} = \sqrt{t-1}\sqrt{\lambda_t}
+\]
+
+Let $H = \left(\sum\limits_{i=1}^{t-1} \lambda_i g_{i,d}^2\right)^\frac{2}{3} \sqrt{t-1}$. Therefore, we have:
+
+\[
+  B_{\psi_{t,d}^*}(-L_{t}, -L_{t-1}) - \psi_{t,d}^*(-L_t) + \psi_{t+1,d}^*(-L_t) \leq \frac{\eta_{t+1,d} \lambda_t
+  g_{t,d}^2}{2} + H \sqrt{\lambda_t}|g_{t,d}|
+\]
+
+Therefore, we have an overall regret bound of
+
+\begin{align}
+  \Regret_T(\bu) 
+  &\leq \sum\limits_{d=1}^D \frac{1}{\eta_{T+1}}\psi_{d}(\bu) + \frac{1}{\eta_1}\psi_{d}^*(0)+\sum\limits_{t=1}^T \min
+  \left\{\frac{\eta_t \lambda_t g_{t,d}^2}{2}, \frac{\eta_{t+1,d} \lambda_t g_{t,d}^2}{2} + H
+  \sqrt{\lambda_t}|g_{t,d}|\right\} \nonumber \\
+  \therefore \Regret_T(\bu) 
+  &\leq \frac{1}{\eta_{T+1}}\psi_{d}(\bu) + \frac{1}{\eta_1}\psi_{d}^*(0)+\frac{1}{2}\sum\limits_{t=1}^T \eta_{t+1}
+  \lambda_t g_{t,d}^2 + \frac{1}{2}\sum\limits_{t=1}^T \min \left\{\frac{\eta_t \lambda_t g_{t,d}^2}{2},  2H
+  \sqrt{\lambda_t}|g_{t,d}|\right\} \label{eq:1}
+\end{align}
+
+Let us bound this regret in three groups.
+
+\begin{enumerate}
+\item $\frac{1}{2}\sum\limits_{t=1}^T \min \left\{\frac{\eta_t \lambda_t g_{t,d}^2}{2}, 2H\sqrt{\lambda_t}|g_{t,d}|\right\}$
+
+  We bound this using Lemma \ref{lemma:3}. Let $B = \min_{t\leq T}a_{t}^\frac{4}{3}$ setting $\alpha = 1+B$.
+  \[
+    \frac{1}{2}\sum\limits_{t=1}^T \min \left\{\frac{\eta_t \lambda_t g_{t,d}^2}{2}, 2H\sqrt{\lambda_t}|g_{t,d}|\right\}
+    \leq 2H(1+B)\max_{t\leq T}\sqrt{\lambda_t}|g_{t,d}| +
+    2\sqrt[3]{1 + (1+B)^2}\sqrt{\sum\limits_{t=1}^T \lambda_{t}^\frac{3}{2} g_{t,d}^3}
+  \]
+\item $\sum\limits_{t=1}^T \frac{\lambda_t g_{t,d}^2}{\sqrt[3]{\sum\limits_{i=1}^t}\lambda_i g_{i,d}^2}$. We bound this
+  by Lemma \ref{lemma:2}.
+
+  \[
+    \sum\limits_{t=1}^T \frac{\lambda_t g_{t,d}^2}{\sqrt[3]{\sum\limits_{i=1}^t\lambda_i g_{i,d}^2}} \leq \frac{3}{2}
+    \left(\sum\limits_{t=1}^T \lambda_t g_{t,d}^2\right)^\frac{2}{3}
+  \]
+\item $\frac{1}{\eta_{T+1}}\psi_{d}(\bu) + \frac{1}{\eta_1}\psi_{d}^*(0)$.
+
+  Note that $\psi_d(\bu) = \frac{1}{2}(\bu_d - x_{0,d})$. Therefore,
+
+  \[
+    \frac{1}{\eta_{T+1,d}}\psi_d(\bu) = \frac{(\bu_d - x_{0,d})^2}{2 \sqrt[3]{\sum\limits_{t=1}^T \lambda_i g_{i,d}^2}}
+  \]
+
+  Now let us analyze $\psi_d^*(0)$. By Proposition \ref{prop:1} item 2,
+
+  \begin{align*}
+    \psi_d^*(0) = \sup\limits_{x \in K}(\langle x , 0 \rangle - \psi_d(x)) = \sup_{x \in K}(-\frac{1}{2}(\bx_d -
+    x_{0,d})) \leq 0
+  \end{align*}
+
+  Therefore, $\frac{1}{\eta_{T+1}}\psi_{d}(\bu) + \frac{1}{\eta_1}\psi_{d}^*(0) \leq \frac{1}{\eta_{T+1}}\psi_{d}(\bu)$
+\end{enumerate}
+
+Substituting these three upper bounds back into (\ref{eq:1}) gives the desired bound. \\
+\qed
 
 \bibliographystyle{plainnat}
 \bibliography{project_report}
