@@ -32,8 +32,12 @@ def main(experiment_name):
                 opt_type = "SGD+M"
             elif "mda" in opt_type:
                 opt_type = "MDA"
+            elif "adam" in opt_type:
+                opt_type = "Adam"
+            else:
+                opt_type = opt_type.upper()
 
-            plt.plot(step, value, alpha=0.7, label=opt_type.upper())
+            plt.plot(step, value, alpha=0.7, label=opt_type)
 
         plt.title(f"{experiment_name} {run_type_map[run_type]}")
         plt.xlabel("Step")
