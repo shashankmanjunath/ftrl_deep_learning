@@ -162,16 +162,17 @@ scale-free nature of the algorithm.
 
 \subsection{Proof of Scale-Free Regret Bound for MADGRAD}
 
-Consider the MADGRAD algorithm. This algorithm implements the regularizer: 
+Consider the MADGRAD algorithm. This algorithm implements FTRL with the regularizer: 
 
 \[
   \psi_t(\bx) = \frac{1}{2} \|\bx - \bx_0 \|_{A_t}
 \]
 
 where $A_t = \diag(\alpha_t)$, and $\alpha_t = \sqrt[3]{\sum\limits_{i=1}^{t-1}\lambda_i g_i^2}$. Note that
-$\psi_t(\bx)$ is strongly-convex with respect to the norm $\| \cdot \|_{A_t}$. Let us denote the Bregman divergence by
-$B$ and let $\theta_t = \sum\limits_{i=1}^t g_i$, where $g_t$ is the subgradient of the algorithm at round $t$. Let us
-first define some useful lemmas.
+$\psi_t(\bx)$ is strongly-convex with respect to the norm $\| \cdot \|_{A_t}$. Let us denote the Bregman divergence of a
+function $f$ over two vectors $\bx, \by \in \R^D$ by $B_f(\bx; \by)$ and let $f^\star$ indicate the Fenchel conjugate of
+$f$. In order to prove the scale-free bound, we make the reduction that $c_t = 1$ for all rounds. This effectively
+removes the momentum operation, and leaves us with only FTRL iterates. Let us first define some useful lemmas.
 
 \begin{lemma}[Lemma 1 in \cite{orabona_generalized_2014}]
   Let $\{\psi_t\}_{t=1}^\infty$ be a sequence of functions defined on a common convex domain $S \subseteq \R^n$ and
@@ -186,6 +187,7 @@ first define some useful lemmas.
 \end{lemma}
 
 \proof Given in (\cite{orabona_generalized_2014})
+\qed
 
 \begin{lemma}
   Let $a_1, a_2, \cdots, a_t$ be non-negative real numbers. If $a_1 > 0$, then
@@ -216,6 +218,8 @@ Let $L_t = \sum\limits_{i=1}^t \ell_i$, and let $x = \frac{\ell_t}{L_t}$. Let $\
 
 Letting $\ell_i = a_i \forall i$ yields the lemma.
 
+\qed
+
 \begin{lemma}
   Let $C, a_1, a_2, \cdots, a_T \geq 0$, and $\alpha \geq 1$. Then,
 
@@ -226,15 +230,103 @@ Letting $\ell_i = a_i \forall i$ yields the lemma.
   \]
 \end{lemma}
 
-\proof We will prove this bound by proving each individual cases, then summing them.
+\proof We will prove this bound by proving each individual case in the minimum, then summing them.
 
 \emph{Case 1}. Consider $a_t \leq \alpha^3 \left(\sum\limits_{s=1}^{t-1} a_s^2\right)^\frac{2}{3}$.
 
 \begin{align*}
+  \min \left\{ \frac{a_{t}^2}{\sqrt[3]{\sum\limits_{s=1}^{t-1} a_{s}^2}}, C a_t \right\} 
+  &\leq \frac{\alpha_{t}^2}{\sqrt[3]{\sum\limits_{s=1}^{t-1}a_{s}^2}} =
+  \frac{a_{t}^2}{\sqrt[3]{\frac{1}{1+\alpha^2}\left(\alpha^2 \sum\limits_{s=1}^{t-1} a_{s}^2 +
+  \sum\limits_{s=1}^{t-1} a_{s}^2 \right)}} \\
+  &\leq \frac{a_{t}^2 \sqrt[3]{1 + \alpha^2}}{\sqrt[3]{a_{t}^2 + \sum\limits_{s=1}^{t-1} a_{s}^2}} = \frac{a_{t}^2
+  \sqrt[3]{1 + \alpha^2}}{\sqrt[3]{\sum\limits_{s=1}^t a_{s}^2}}
 \end{align*}
 
-Let us address this upper bound in two terms. First let us upper bound the $B_{\psi_{t}^\star}(-\theta_t, -\theta_{t-1})
-- \psi_{t}^\star (-\theta_t) + \psi_{t+1}^\star(-\theta_t)$ term.
+Note that $\frac{x^2}{\sqrt[3]{x^2 + y^2}} \leq 2(\sqrt{x^3 + y^3} - \sqrt{y^3})$. Using this inequality,
+
+\[
+  \sqrt[3]{1 + \alpha^2} \frac{a_{t}^2}{\sqrt[3]{\sum\limits_{s=1}^t a_{s}^2}} \leq 2 \sqrt[3]{1 +
+  \alpha^2}\left(\sqrt{\sum\limits_{s=1}^t a_{s}^3} - \sqrt{\sum\limits_{s=1}^{t-1} a_{s}^3}\right)
+\]
+
+\emph{Case 2} Consider $a_{t}^2 \geq \alpha^3 \left(\sum\limits_{s=1}^{t-1} a_{s}^2\right)^\frac{2}{3}$. Note that this
+implies that $a_t \geq \alpha^\frac{3}{2} \sqrt[3]{\sum\limits_{s=1}^{t-1} a_{s}^2}$. Additionally, let 
+$A = \left( \sum\limits_{s=1}^{t-1} a_{s}^2 \right)^\frac{2}{3}$.
+
+
+\begin{align*}
+  \min \left\{ \frac{a_{t}^2}{\sqrt[3]{\sum\limits_{s=1}^{t-1} a_{s}^2}}, C a_t \right\}
+  &\leq C a_t = C a_t \left(\frac{\alpha - A}{\alpha -A}\right) \\
+  &\leq \frac{C}{\alpha - A}\left(\alpha a_t - A a_t\right) = \frac{C \alpha}{\alpha - A}\left(a_t - \alpha^\frac{1}{2}
+    A \sqrt[3]{\sum\limits_{s=1}^{t-1} a_{s}^2}\right) \\
+  &\leq \frac{C \alpha}{\alpha - A}\left(a_t - \left( \sum\limits_{s=1}^{t-1} a_{s}^2 \right)^\frac{2}{3}
+  \left(\sum\limits_{s=1}^{t-1} a_{s}^2\right)^\frac{1}{3}\right) \\
+  &\leq \frac{C \alpha}{\alpha - A}\left(a_t - \sqrt{\sum\limits_{s=1}^{t-1} a_{s}^2}\right)
+\end{align*}
+
+Let $M_t = \max \{a_t, \cdots, a_t\}$. Note that in this case, $a_t = M_t$, and $\sqrt{\sum\limits_{s=1}^{t-1} a_{s}^2}
+\geq M_{t-1}$. Therefore,
+
+\[
+  \min \left\{ \frac{a_{t}^2}{\sqrt[3]{\sum\limits_{s=1}^{t-1} a_{s}^2}}, C a_t \right\} \leq 
+  \frac{C \alpha}{\alpha - A}\left(M_t - M_{t-1}\right)
+\]
+
+Therefore, combining the two cases, we have:
+
+\[
+  \min \left\{ \frac{a_{t}^2}{\sqrt[3]{\sum\limits_{s=1}^{t-1} a_{s}^2}}, C a_t \right\} \leq \frac{C \alpha}{\alpha -
+  A}\left(M_t - M_{t-1}\right) + 2 \sqrt[3]{1 + \alpha^2}\left(\sqrt{\sum\limits_{s=1}^t a_{s}^3} -
+  \sqrt{\sum\limits_{s=1}^{t-1} a_{s}^3}\right)
+\]
+
+Therefore, summing from $t=1$ to $T$,
+
+\[
+  \sum\limits_{t=1}^T\min \left\{ \frac{a_{t}^2}{\sqrt[3]{\sum\limits_{s=1}^{t-1} a_{s}^2}}, C a_t \right\} \leq \frac{C \alpha}{\alpha -
+  A}\left(\max\limits_{t=1, \cdots, T} a_t\right) + 2 \sqrt[3]{1 + \alpha^2}\left(\sqrt{\sum\limits_{t=1}^T a_{t}^3}\right)
+\]
+
+\qed
+
+Let us now state the overall convergence bound for our version of MADGRAD.
+
+\begin{theorem}
+  Suppose $K \subseteq \R^D$ is a non-empty closed convex subset. Suppose that a regularizer $\psi_t: K \rightarrow R$
+  is a non-negative lower semi-continuous function that is $\mu_t$ strongly convex with respect to a norm $\| \cdot
+  \|_t$. The regret of non-momentumized MADGRAD satisfies:
+
+  \begin{align*}
+    \Regret_T(u) \leq \sum\limits_{d=1}^D \left(\frac{\psi_d(u_d)}{\sqrt[3]{\sum\limits_{i=1}^{T} \lambda_i
+      g_{id}^2}}\right) + \frac{3}{2}\left(\sum\limits_{t=1}^T \lambda_t g_{td}^2\right)^\frac{2}{3} +& \frac{2
+      \sqrt{T-1}\left(\sum_{i=1}^{t-1} \lambda_i g_{id}^2\right)}{1 - \left( \sum_{i=1}^{t-1} a_{i}^2
+    \right)^\frac{2}{3}} \max_{t \leq T} \sqrt{\lambda_t}|g_{td}| \\ &+ 2\sqrt[3]{2}\sqrt{\sum\limits_{t-1}^T
+    \lambda_t^\frac{3}{2} |g_{td}|^3}
+  \end{align*}
+\end{theorem}
+
+\proof Note that $\psi_t (x) = \frac{1}{2} \| \bx - \bx_0\|_{A_t}^2$, where $A_t = \diag(\alpha_t)$. For this
+regularizer, $\alpha_t = \sqrt[3]{\sum\limits_{i=1}^{t-1} \lambda_i g_{i}^2} \in \R^D$. Let $L_t = \sum\limits_{i=1}^t
+\lambda_i g_i$.Let us perform this analysis per-coordinate.
+
+\[
+  \psi_{t,d}(\bx) = \frac{1}{2} (\bx_d - \bx_{0,d})\sqrt[3]{\sum\limits_{i=1}^{t-1} \lambda_i g_{id}^2}(\bx_d -
+  \bx_{0,d}) = \frac{1}{2}\sqrt[3]{\sum\limits_{i=1}^{t-1} \lambda_i g_{id}^2}(\bx_d - \bx_{0,d})^2.
+\]
+
+Let $\eta_{t,d} = \frac{1}{\sqrt[3]{\sum\limits_{i=1}^{t-1} \lambda_i g_{id}^2}}$. Therefore, we have:
+
+\begin{align*}
+  \psi_{t,d} (\bx) &= \frac{1}{\eta_{t,d}} \psi_d(\bx) \\
+  \psi_d(\bx) &= \frac{1}{2} (\bx_d - \bx_{0,d})
+\end{align*}
+
+Since $A_t$ is a diagonal matrix, $\psi_t(\bx)$ is $\min_{D} \sqrt[3]{\sum\limits_{i=1}^{t-1} \lambda_i
+g_{i}^2}$-strongly convex. We can tighten this bound by analyzing $\psi_{t,d}(\bx)$ and establishing a per-coordinate
+strong convexity bound. Recall that, since $\psi_d(\bx): \R \rightarrow \R$, we can find the strong convexity by finding
+the lower bound of the second derivative of $\psi_d(\bx)$.
+
 
 
 \bibliographystyle{plainnat}
