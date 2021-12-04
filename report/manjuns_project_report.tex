@@ -21,29 +21,28 @@
 \usepackage[T1]{fontenc}    % use 8-bit T1 fonts
 \usepackage{hyperref}       % hyperlinks
 \usepackage{url}            % simple URL typesetting
-\usepackage{booktabs}       % professional-quality tables
 \usepackage{amsfonts}       % blackboard math symbols
 \usepackage{nicefrac}       % compact symbols for 1/2, etc.
-\usepackage{microtype}      % microtypography
 \usepackage{xcolor}         % colors
+\usepackage{algorithm2e}    % algorithms
 
+% For images
 \usepackage{graphicx}
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage{float}
 
-\usepackage{amsmath,amscd,amssymb,amsthm}
+\usepackage{amsmath,amssymb,amsthm}
 \usepackage{cases}
 \usepackage{thmtools}
 \usepackage{thm-restate}
-\usepackage{mdframed,url,multirow,listings,textcomp,ifthen}   
-\usepackage{tikz,mathtools,color}
-\usepackage{parskip}
 
-\newtheorem{theorem}{Theorem}[section]
-\newtheorem{corollary}{Corollary}[theorem]
-\newtheorem{lemma}[theorem]{Lemma}
-\newtheorem{proposition}[theorem]{Proposition}
+% \newtheorem{theorem}{Theorem}[section]
+% \newtheorem{lemma}[theorem]{Lemma}
+% \newtheorem{proposition}[theorem]{Proposition}
+\declaretheorem{theorem}
+\declaretheorem{lemma}
+\declaretheorem{proposition}
 
 \newcommand{\R}{\mathbb{R}}
 \newcommand{\E}{\mathop{\mathbb{E}}}
@@ -68,6 +67,7 @@
 \newcommand{\op}{\text{op}}
 \renewcommand{\H}{\mathbf{H}}
 \newcommand{\todo}[1]{\textcolor{red}{#1}}
+\RestyleAlgo{ruled}
 
 \title{A Scale-Free MADGRAD Regret Bound}
 
@@ -89,18 +89,52 @@
 
 \maketitle
 
-\todo{\section{Introduction}}
+\section{Introduction}
 
-This project is concerned with dual averaging algorithms applied to deep learning. So far, we have tested two dual
+This paper is concerned with dual averaging algorithms applied to deep learning. So far, we have tested two dual
 averaging algorithms, Modernized Dual Averaging (MDA) (\cite{jelassi_dual_2020}) and MADGRAD
 (\cite{defazio_adaptivity_nodate}), which use Follow the Regularized Leader (FTRL) style algorithms in order to optimize
-deep learning algorithms. For this project, we have focused on both implementing these algorithms in PyTorch
+deep learning algorithms. For this paper, we have focused on both implementing these algorithms in PyTorch
 (\cite{paszke_pytorch_2019}) and testing them out on the CIFAR10 dataset (\cite{krizhevsky_learning_nodate}). We then
-prove an alternate, scale-free regret bound for the MADGRAD algorithm.
+prove an alternate, scale-free regret bound for the MADGRAD algorithm in Section~\ref{section:theory}.
 
 \todo{\section{Algorithm Details}}
 
-\todo{\section{Algorithm Implementation}}
+\subsection{Algorithm Comparison}
+MDA is defined as follows:
+
+\begin{algorithm}
+  \caption{Modernized Dual Averaging}\label{algo:mda}
+  \textbf{Input:} $x_0 \in \R^n$ initial point, $\gamma_k \geq 0$ stepsize sequence, $c_k$ momentum parameter
+  sequence. Initialize $s_{-1} = 0$ \\
+  \For{$k=0,\cdots,T-1$}{
+    Set the scaling coefficient $\beta_k = \sqrt{k+1}$ and stepsize $\lambda_k = \gamma_k = \gamma\sqrt{k+1}$ \\
+    Sample $\xi_k ~ P$ and compute stochastic gradient $g_k = \nabla f(x_k, \xi_k)$. \\
+    $s_k = s_{k-1} + \lambda_k g_k$ \\
+    $z_{k+1} = x_0 - \frac{s_k}{\beta_k}$ \\
+    $x_{k+1} = (1 - c_{k+1})x_k + c_{k+1}z_{k+1}$
+  }
+  \Return{$x_T$}
+\end{algorithm}
+
+Note that MDA implements FTRL on the $z_{k+1}$ iterates with the following update:
+
+\[
+  z_{k+1} = \argmin_{x \in \R^n}\left\{\langle \sum\limits_{i=1}^{k}\lambda_i g_i, x \rangle + \frac{1}{2\sqrt{k+1}}\|x
+  - x_0\|_2\right\}
+\]
+
+This algorithm uses an $L_2$ based regularizer function.The averaging technique used to create $x_{k+1}$, $x_{k+1} = (1
+- c_{k+1})x_k + c_{k+1}z_{k+1}$, allows use of the final iterate, $x_T$, as the algorithm parameters. Removing this and
+directly using the $z_{k+1}$ iterates requires using the averaged iterates as algorithm parameters, i.e. $x_T =
+\frac{1}{T-1}\sum_{i=1}^{T-1} x_i$. This can become infeasible for a large number of rounds or models which require a
+large number of parameters such as deep neural networks.
+
+MADGRAD implements a similar algorithm with a slightly different regularizer.
+
+\subsection{MADGRAD Cube-Root Denominator}
+
+\section{Algorithm Implementation}
 
 We have successfully replicated results on the CIFAR10 dataset for the MDA, MADGRAD, Adam, and Stochastic
 Gradient Descent with Momentum (SGD+M) algorithms. We show our test accuracy and test loss results in the plot below.
@@ -124,9 +158,13 @@ Gradient Descent with Momentum (SGD+M) algorithms. We show our test accuracy and
 \end{figure}
 
 Our experiment setup and optimizer implementations for MDA and MADGRAD can be found at
-\url{https://github.com/shashankmanjunath/ftrl_deep_learning}.
+\url{https://github.com/shashankmanjunath/ftrl_deep_learning}. We provide algorithm hyperparameters in~\ref{algoparams}.
 
-\section{Theory}
+Comparing algorithm performance shows that MDA and MADGRAD achieve performance on par with tuned SGD+M, and outperform
+tuned Adam. However, MDA and MADGRAD also require significant parameter tuning in order to perform appropriately, and
+therefore do not necessarily provide a significant advantage over SGD+M.
+
+\section{Theory}\label{section:theory}
 
 When proving the convergence bound for MADGRAD, the authors require an alternative definition of
 MADGRAD than the one presented in the paper and implemented. In the original MADGRAD algorithm presented in the paper,
@@ -158,23 +196,24 @@ scale-free nature of the algorithm.
 
 \subsection{Proof of Scale-Free Regret Bound for MADGRAD}
 
-\todo{Talk about assumptions}
-
 Consider the MADGRAD algorithm. This algorithm implements FTRL with the regularizer: 
 
 \[
   \psi_t(\bx) = \frac{1}{2} \|\bx - \bx_0 \|_{A_t}
 \]
 
-where $A_t = \diag(\alpha_t)$, and $\alpha_t = \sqrt[3]{\sum\limits_{i=1}^{t-1}\lambda_i g_i^2}$. Note that
-$\psi_t(\bx)$ is strongly-convex with respect to the norm $\| \cdot \|_{A_t}$. Let us denote the Bregman divergence of a
-function $f$ over two vectors $\bx, \by \in \R^D$ by $B_f(\bx; \by)$ and let $f^\star$ indicate the Fenchel conjugate of
-$f$. In order to prove the scale-free bound, we make the reduction that $c_t = 1$ for all rounds. This effectively
-removes the momentum operation, and leaves us with only FTRL iterates. Let us first make a useful proposition.
+where $A_t = \diag(\alpha_t)$, and $\alpha_t = \sqrt[3]{\sum_{i=1}^{t-1}\lambda_i g_i^2}$. Note that $\psi_t(\bx)$ is
+strongly-convex with respect to the norm $\| \cdot \|_{A_t}$. Let us denote the Bregman divergence of a function $f$
+over two vectors $\bx, \by \in \R^D$ by $B_f(\bx; \by)$ and let $f^\star$ indicate the Fenchel conjugate of $f$. In
+order to prove the scale-free bound, we make the reduction that $c_t = 1$ for all rounds. This effectively removes the
+momentum operation, and leaves us with only FTRL iterates. Let us first make a useful proposition. Proving a scale-free
+bound for the whole algorithm will require modification of Lemma~\ref{lemma:1} in order to handle the modified update.
+Note that we make no assumption on the size of our convex set $K$ used as the feasible set for our algorithm.
+Additionally, we make no assumptions about the boundedness of subgradients $g_i$. 
 
-\begin{proposition}[Proposition 2 in \cite{orabona_generalized_2014}: Properties of Fenchel Conjugates of Strongly
-  Convex Functions]\label{prop:1}
-  Let $K \subseteq V$ be a non-empty closed convex set. Let $\lambda \geq 0$, and let $f: K \rightarrow R$ be a lower
+\begin{restatable}[Proposition 2 in~\cite{orabona_generalized_2014}: Properties of Fenchel Conjugates of
+  Strongly Convex Functions]{proposition}{fenchelprop}\label{prop:1}
+  Let $K \subseteq \R^D$ be a non-empty closed convex set. Let $\lambda \geq 0$, and let $f: K \rightarrow R$ be a lower
   semi-continuous function that is $\lambda$-strongly convex with respect to $\| \cdot \|$. The Fenchel conjugate of f
   satisfies:
 
@@ -182,16 +221,16 @@ removes the momentum operation, and leaves us with only FTRL iterates. Let us fi
     \item $f^*$ is finite everywhere and differentiable
     \item $\nabla f^* (\ell) = \argmin_{w \in K}(f(w) - \langle \ell, w \rangle)$
     \item For any $\ell \in V^*$, $f^*(\ell) + f(\nabla f^*(\ell)) = \langle \ell, \nabla f^\star (\ell) \rangle$
-    \item $f^*$ is $\frac{1}{\lambda}$-strongly smooth, i.e. for any $x, y \in V^*$, $B_{f^*}(x, y) \leq
+    \item $f^*$ is $\frac{1}{\lambda}$-strongly smooth, i.e.\ for any $x, y \in V^*$, $B_{f^*}(x, y) \leq
       \frac{1}{2\lambda}\|x - y \|_*$
     \item $f^*$ has $\frac{1}{\lambda}$-Lipschitz continuous gradients, i.e. $\| \nabla f^*(x) - \nabla f^*(y)\| \leq
       \frac{1}{\lambda}\|x - y\|_*$ for any $x, y \in V^*$
   \end{enumerate}
-\end{proposition}
+\end{restatable}
 
 Let us now define some useful lemmas.
 
-\begin{lemma}[Lemma 1 in \cite{orabona_generalized_2014}] \label{lemma:1}
+\begin{restatable}[Lemma 1 in~\cite{orabona_generalized_2014}]{lemma}{lemma1}\label{lemma:1}
   Let $\{\psi_t\}_{t=1}^\infty$ be a sequence of functions defined on a common convex domain $S \subseteq \R^n$ and
   such that each $\psi_t$ is $\mu_t$-strongly convex with respect to the norm $\|\cdot\|_t$. Let $\|\cdot\|_{t, \star}$ be
   the dual norm of $\| \cdot \|_t$, for $t = 1, 2, \cdots, T$. Then, for any $\bu \in S$,
@@ -201,43 +240,22 @@ Let us now define some useful lemmas.
     \sum\limits_{t=1}^T B_{\psi_{t}^\star}(-\theta_t, -\theta_{t-1}) - \psi_{t}^\star (-\theta_t) +
     \psi_{t+1}^\star(-\theta_t)
   \]
-\end{lemma}
+\end{restatable}
 
-\proof Given in (\cite{orabona_generalized_2014})
+\proof~Given in (\cite{orabona_generalized_2014})
 \qed
 
-\begin{lemma} \label{lemma:2}
+\begin{restatable}{lemma}{firstbound}\label{lemma:2}
   Let $a_1, a_2, \cdots, a_t$ be non-negative real numbers. If $a_1 > 0$, then
   \[
     \sum\limits_{t=1}^T \frac{a_t}{\sqrt[3]{\sum\limits_{s=1}^t a_s}} \leq \frac{3}{2}\left(\sum\limits_{t=1}^T
     a_t\right)^\frac{2}{3}
   \]
-\end{lemma}
+\end{restatable}
 
-\proof Note that if $0 \leq x \leq 1$, 
+\proof~Given in~\ref{lemmaproof:2}
 
-\[
-  \frac{2}{3} x \leq 1 - (1 - x)^\frac{2}{3}
-\]
-
-Let $L_t = \sum\limits_{i=1}^t \ell_i$, and let $x = \frac{\ell_t}{L_t}$. Let $\ell_0 = 0$.
-
-\begin{align*}
-  \frac{2}{3} \frac{\ell_t}{L_t}
-  &\leq 1 - (1 - \frac{\ell_t}{L_t})^\frac{2}{3} = 1 - (\frac{L_{t-1}}{L_t})^\frac{2}{3} \\
-  \frac{2}{3} \frac{\ell_t}{L_t} L_{t}^\frac{2}{3} &\leq L_{t}^\frac{2}{3} - L_{t-1}^\frac{2}{3} \\
-  \frac{2}{3} \frac{\ell_t}{\sqrt[3]{L_t}} &\leq L_{t}^\frac{2}{3} - L_{t-1}^\frac{2}{3} \\
-  \therefore \frac{2}{3} \sum\limits_{t=1}^T \frac{\ell_t}{\sqrt[3]{L_t}} &\leq \sum\limits_{t=1}^T L_{t}^\frac{2}{3} -
-  L_{t-1}^\frac{2}{3} \\
-  \sum\limits_{t=1}^T \frac{\ell_t}{\sqrt[3]{L_t}} &\leq \frac{3}{2} L_{T}^\frac{3}{2} \\
-  \sum\limits_{t=1}^T \frac{\ell_t}{\sqrt[3]{L_t}} &\leq \frac{3}{2} \left(\sum\limits_{t=1}^T \ell_t \right)^\frac{2}{3}
-\end{align*}
-
-Letting $\ell_i = a_i \forall i$ yields the lemma.
-
-\qed
-
-\begin{lemma} \label{lemma:3}
+\begin{restatable}{lemma}{secondbound}\label{lemma:3}
   Let $C, a_1, a_2, \cdots, a_T \geq 0$, and $\alpha \geq 1, \alpha \neq \min\limits_{t=1,2,\cdots,T}a_{t}^\frac{4}{3}$.
   Then,
 
@@ -246,92 +264,25 @@ Letting $\ell_i = a_i \forall i$ yields the lemma.
     \frac{C \alpha}{\alpha - \min\limits_{t=1,2,\cdots,T}a_{t}^\frac{4}{3}} \max\limits_{t=1,2,\cdots,T} a_t
     + 2\sqrt[3]{1 + \alpha^2} \sqrt{\sum\limits_{s=1}^T a_{s}^3}
   \]
-\end{lemma}
+\end{restatable}
 
-\proof We will prove this bound by proving each individual case in the minimum, then summing them.
-
-\emph{Case 1}. Consider $a_t \leq \alpha^3 \left(\sum\limits_{s=1}^{t-1} a_s^2\right)^\frac{2}{3}$.
-
-\begin{align*}
-  \min \left\{ \frac{a_{t}^2}{\sqrt[3]{\sum\limits_{s=1}^{t-1} a_{s}^2}}, C a_t \right\} 
-  &\leq \frac{\alpha_{t}^2}{\sqrt[3]{\sum\limits_{s=1}^{t-1}a_{s}^2}} =
-  \frac{a_{t}^2}{\sqrt[3]{\frac{1}{1+\alpha^2}\left(\alpha^2 \sum\limits_{s=1}^{t-1} a_{s}^2 +
-  \sum\limits_{s=1}^{t-1} a_{s}^2 \right)}} \\
-  &\leq \frac{a_{t}^2 \sqrt[3]{1 + \alpha^2}}{\sqrt[3]{a_{t}^2 + \sum\limits_{s=1}^{t-1} a_{s}^2}} = \frac{a_{t}^2
-  \sqrt[3]{1 + \alpha^2}}{\sqrt[3]{\sum\limits_{s=1}^t a_{s}^2}}
-\end{align*}
-
-Note that $\frac{x^2}{\sqrt[3]{x^2 + y^2}} \leq 2(\sqrt{x^3 + y^3} - \sqrt{y^3})$. Using this inequality,
-
-\[
-  \sqrt[3]{1 + \alpha^2} \frac{a_{t}^2}{\sqrt[3]{\sum\limits_{s=1}^t a_{s}^2}} \leq 2 \sqrt[3]{1 +
-  \alpha^2}\left(\sqrt{\sum\limits_{s=1}^t a_{s}^3} - \sqrt{\sum\limits_{s=1}^{t-1} a_{s}^3}\right)
-\]
-
-\emph{Case 2} Consider $a_{t}^2 \geq \alpha^3 \left(\sum\limits_{s=1}^{t-1} a_{s}^2\right)^\frac{2}{3}$. Note that this
-implies that $a_t \geq \alpha^\frac{3}{2} \sqrt[3]{\sum\limits_{s=1}^{t-1} a_{s}^2}$. Additionally, let 
-$A = \left( \sum\limits_{s=1}^{t-1} a_{s}^2 \right)^\frac{2}{3}$.
-
-
-\begin{align*}
-  \min \left\{ \frac{a_{t}^2}{\sqrt[3]{\sum\limits_{s=1}^{t-1} a_{s}^2}}, C a_t \right\}
-  &\leq C a_t = C a_t \left(\frac{\alpha - A}{\alpha -A}\right) \\
-  &\leq \frac{C}{\alpha - A}\left(\alpha a_t - A a_t\right) = \frac{C \alpha}{\alpha - A}\left(a_t - \alpha^\frac{1}{2}
-    A \sqrt[3]{\sum\limits_{s=1}^{t-1} a_{s}^2}\right) \\
-  &\leq \frac{C \alpha}{\alpha - A}\left(a_t - \left( \sum\limits_{s=1}^{t-1} a_{s}^2 \right)^\frac{2}{3}
-  \left(\sum\limits_{s=1}^{t-1} a_{s}^2\right)^\frac{1}{3}\right) \\
-  &\leq \frac{C \alpha}{\alpha - A}\left(a_t - \sqrt{\sum\limits_{s=1}^{t-1} a_{s}^2}\right)
-\end{align*}
-
-Let $M_t = \max \{a_t, \cdots, a_t\}$. Note that in this case, $a_t = M_t$, and $\sqrt{\sum\limits_{s=1}^{t-1} a_{s}^2}
-\geq M_{t-1}$. Therefore,
-
-\[
-  \min \left\{ \frac{a_{t}^2}{\sqrt[3]{\sum\limits_{s=1}^{t-1} a_{s}^2}}, C a_t \right\} \leq 
-  \frac{C \alpha}{\alpha - A}\left(M_t - M_{t-1}\right)
-\]
-
-Further note that since $a_t \geq 0 \forall t$, $A = (\sum\limits_{s=1}^T a_{s}^2)^\frac{2}{3} \geq
-\min_{t=1,\cdots,T}a_{t}^\frac{4}{3}$. Let $B = \min_{t=1,\cdots,T}a_{t}^\frac{4}{3}$, Therefore,
-
-\[
-  \min \left\{ \frac{a_{t}^2}{\sqrt[3]{\sum\limits_{s=1}^{t-1} a_{s}^2}}, C a_t \right\} \leq 
-  \frac{C \alpha}{\alpha - B}\left(M_t - M_{t-1}\right)
-\]
-
-Therefore, combining the two cases, we have:
-
-\[
-  \min \left\{ \frac{a_{t}^2}{\sqrt[3]{\sum\limits_{s=1}^{t-1} a_{s}^2}}, C a_t \right\} \leq \frac{C \alpha}{\alpha -
-  B}\left(M_t - M_{t-1}\right) + 2 \sqrt[3]{1 + \alpha^2}\left(\sqrt{\sum\limits_{s=1}^t a_{s}^3} -
-  \sqrt{\sum\limits_{s=1}^{t-1} a_{s}^3}\right)
-\]
-
-Therefore, summing from $t=1$ to $T$,
-
-\[
-  \sum\limits_{t=1}^T\min \left\{ \frac{a_{t}^2}{\sqrt[3]{\sum\limits_{s=1}^{t-1} a_{s}^2}}, C a_t \right\} \leq \frac{C
-  \alpha}{\alpha - B}\left(\max\limits_{t=1, \cdots, T} a_t\right) + 2 \sqrt[3]{1 +
-  \alpha^2}\left(\sqrt{\sum\limits_{t=1}^T a_{t}^3}\right)
-\]
-
-\qed
+\proof~Given in~\ref{lemmaproof:3}
 
 Let us now state the overall convergence bound for our version of MADGRAD.
 
-\begin{theorem} \label{theorem:1}
+\begin{restatable}{theorem}{regretbound}\label{theorem:1}%
   Suppose $K \subseteq \R^D$ is a non-empty closed convex subset. Suppose that a regularizer $\psi_t: K \rightarrow \R$
   is a non-negative lower semi-continuous function that is $\mu_t$ strongly convex with respect to a norm $\| \cdot
   \|_t$. The regret of non-momentumized MADGRAD satisfies:
 
   \begin{align*}
-    \Regret_T(u) \leq \sum\limits_{d=1}^D \frac{\psi_d(u_d)}{\sqrt[3]{\sum\limits_{i=1}^{T} \lambda_i
-      g_{id}^2}} + \frac{3}{2}\left(\sum\limits_{t=1}^T \lambda_t g_{td}^2\right)^\frac{2}{3} +& \frac{2
-      \sqrt{T-1}\left(\sum_{i=1}^{t-1} \lambda_i g_{id}^2\right)}{1 - \left( \sum_{i=1}^{t-1} a_{i}^2
-    \right)^\frac{2}{3}} \max_{t \leq T} \sqrt{\lambda_t}|g_{td}| \\ &+ 2\sqrt[3]{2}\sqrt{\sum\limits_{t-1}^T
-    \lambda_t^\frac{3}{2} |g_{td}|^3}
+    \Regret_T(u) \leq \sum\limits_{d=1}^D \frac{\psi_d(u_d)}{\sqrt[3]{\sum\limits_{i=1}^{T} \lambda_i g_{id}^2}} +
+    \frac{3}{2}\left(\sum\limits_{t=1}^T \lambda_t g_{td}^2\right)^\frac{2}{3} +& 2 \sqrt{T-1}\left(\sum_{i=1}^{T-1}
+    \lambda_i g_{id}^2\right)^\frac{2}{3}(1 + \min_{t \leq T}(\sqrt{\lambda_t}|g_{t,d}|)^\frac{4}{3}) \max_{t \leq T}
+      \sqrt{\lambda_t}|g_{td}| \\ &+ 2\sqrt[3]{1 + (1 + \min_{t \leq
+      T}(\sqrt{\lambda_t}|g_{t,d}|)^\frac{4}{3})^2}\sqrt{\sum\limits_{t-1}^T \lambda_t^\frac{3}{2} |g_{t,d}|^3}
   \end{align*}
-\end{theorem}
+\end{restatable}
 
 \proof Note that $\psi_t (x) = \frac{1}{2} \| \bx - \bx_0\|_{A_t}^2$, where $A_t = \diag(\alpha_t)$. For this
 regularizer, $\alpha_t = \sqrt[3]{\sum\limits_{i=1}^{t-1} \lambda_i g_{i}^2} \in \R^D$. Let $L_t = \sum\limits_{i=1}^t
@@ -349,8 +300,8 @@ Let $\eta_{t,d} = \frac{1}{\sqrt[3]{\sum\limits_{i=1}^{t-1} \lambda_i g_{id}^2}}
   \psi_d(\bx) &= \frac{1}{2} (\bx_d - \bx_{0,d})
 \end{align*}
 
-Since $A_t$ is a diagonal matrix, $\psi_t(\bx)$ is $\min\limits_{D} \sqrt[3]{\sum\limits_{i=1}^{t-1} \lambda_i
-g_{i}^2}$-strongly convex. We can tighten this bound by analyzing $\psi_{t,d}(\bx)$ and establishing a per-coordinate
+Since $A_t$ is a diagonal matrix, $\psi_t(\bx)$ is $\min_{d \leq D} \sqrt[3]{\sum\limits_{i=1}^{t-1} \lambda_i
+g_{i,d}^2}$-strongly convex. We can tighten this bound by analyzing $\psi_{t,d}(\bx)$ and establishing a per-coordinate
 strong convexity bound. Recall that, since $\psi_d(\bx): \R \rightarrow \R$, we can find the strong convexity by finding
 the lower bound of the second derivative of $\psi_d(\bx)$.
 
@@ -385,7 +336,7 @@ two ways.
     g_{t,d}^2}{2 \mu_{t,d}} = \frac{\eta_t \lambda_t g_{t,d}^2}{2}$. Therefore, by Lemma \ref{lemma:1}, we know that:
 
     \[
-      B_{\psi_{t,d}^*)}(-L_t, -L_{t-1}) - \psi_{t,d}^*(-L_t) + \psi_{t+1,d}^*(-L_t) \leq B_{\psi_{t,d}^*}(-L_t,
+      B_{\psi_{t,d}^*}(-L_t, -L_{t-1}) - \psi_{t,d}^*(-L_t) + \psi_{t+1,d}^*(-L_t) \leq B_{\psi_{t,d}^*}(-L_t,
       -L_{t-1}) \leq \frac{\eta_t \lambda_t g_{t,d}^2}{2}
     \]
 
@@ -496,5 +447,109 @@ Substituting these three upper bounds back into (\ref{eq:1}) gives the desired b
 
 \bibliographystyle{plainnat}
 \bibliography{project_report}
+
+\appendix
+\section{Appendix}
+\todo{\subsection{Algorithm Parameters}}\label{algoparams}
+
+\subsection{Proof of Lemma 2}\label{lemmaproof:2}
+
+\firstbound*
+
+\proof Note that if $0 \leq x \leq 1$, 
+
+\[
+  \frac{2}{3} x \leq 1 - (1 - x)^\frac{2}{3}
+\]
+
+Let $L_t = \sum\limits_{i=1}^t \ell_i$, and let $x = \frac{\ell_t}{L_t}$. Let $\ell_0 = 0$.
+
+\begin{align*}
+  \frac{2}{3} \frac{\ell_t}{L_t}
+  &\leq 1 - (1 - \frac{\ell_t}{L_t})^\frac{2}{3} = 1 - (\frac{L_{t-1}}{L_t})^\frac{2}{3} \\
+  \frac{2}{3} \frac{\ell_t}{L_t} L_{t}^\frac{2}{3} &\leq L_{t}^\frac{2}{3} - L_{t-1}^\frac{2}{3} \\
+  \frac{2}{3} \frac{\ell_t}{\sqrt[3]{L_t}} &\leq L_{t}^\frac{2}{3} - L_{t-1}^\frac{2}{3} \\
+  \therefore \frac{2}{3} \sum\limits_{t=1}^T \frac{\ell_t}{\sqrt[3]{L_t}} &\leq \sum\limits_{t=1}^T L_{t}^\frac{2}{3} -
+  L_{t-1}^\frac{2}{3} \\
+  \sum\limits_{t=1}^T \frac{\ell_t}{\sqrt[3]{L_t}} &\leq \frac{3}{2} L_{T}^\frac{3}{2} \\
+  \sum\limits_{t=1}^T \frac{\ell_t}{\sqrt[3]{L_t}} &\leq \frac{3}{2} \left(\sum\limits_{t=1}^T \ell_t \right)^\frac{2}{3}
+\end{align*}
+
+Letting $\ell_i = a_i \forall i$ yields the lemma.
+
+\qed
+
+\subsection{Proof of Lemma 3}\label{lemmaproof:3}
+
+\secondbound*
+
+\proof We will prove this bound by proving each individual case in the minimum, then summing them.
+
+\emph{Case 1}. Consider $a_t \leq \alpha^3 \left(\sum\limits_{s=1}^{t-1} a_s^2\right)^\frac{2}{3}$.
+
+\begin{align*}
+  \min \left\{ \frac{a_{t}^2}{\sqrt[3]{\sum\limits_{s=1}^{t-1} a_{s}^2}}, C a_t \right\} 
+  &\leq \frac{\alpha_{t}^2}{\sqrt[3]{\sum\limits_{s=1}^{t-1}a_{s}^2}} =
+  \frac{a_{t}^2}{\sqrt[3]{\frac{1}{1+\alpha^2}\left(\alpha^2 \sum\limits_{s=1}^{t-1} a_{s}^2 +
+  \sum\limits_{s=1}^{t-1} a_{s}^2 \right)}} \\
+  &\leq \frac{a_{t}^2 \sqrt[3]{1 + \alpha^2}}{\sqrt[3]{a_{t}^2 + \sum\limits_{s=1}^{t-1} a_{s}^2}} = \frac{a_{t}^2
+  \sqrt[3]{1 + \alpha^2}}{\sqrt[3]{\sum\limits_{s=1}^t a_{s}^2}}
+\end{align*}
+
+Note that $\frac{x^2}{\sqrt[3]{x^2 + y^2}} \leq 2(\sqrt{x^3 + y^3} - \sqrt{y^3})$. Using this inequality,
+
+\[
+  \sqrt[3]{1 + \alpha^2} \frac{a_{t}^2}{\sqrt[3]{\sum\limits_{s=1}^t a_{s}^2}} \leq 2 \sqrt[3]{1 +
+  \alpha^2}\left(\sqrt{\sum\limits_{s=1}^t a_{s}^3} - \sqrt{\sum\limits_{s=1}^{t-1} a_{s}^3}\right)
+\]
+
+\emph{Case 2} Consider $a_{t}^2 \geq \alpha^3 \left(\sum\limits_{s=1}^{t-1} a_{s}^2\right)^\frac{2}{3}$. Note that this
+implies that $a_t \geq \alpha^\frac{3}{2} \sqrt[3]{\sum\limits_{s=1}^{t-1} a_{s}^2}$. Additionally, let 
+$A = \left( \sum\limits_{s=1}^{t-1} a_{s}^2 \right)^\frac{2}{3}$.
+
+
+\begin{align*}
+  \min \left\{ \frac{a_{t}^2}{\sqrt[3]{\sum\limits_{s=1}^{t-1} a_{s}^2}}, C a_t \right\}
+  &\leq C a_t = C a_t \left(\frac{\alpha - A}{\alpha -A}\right) \\
+  &\leq \frac{C}{\alpha - A}\left(\alpha a_t - A a_t\right) = \frac{C \alpha}{\alpha - A}\left(a_t - \alpha^\frac{1}{2}
+    A \sqrt[3]{\sum\limits_{s=1}^{t-1} a_{s}^2}\right) \\
+  &\leq \frac{C \alpha}{\alpha - A}\left(a_t - \left( \sum\limits_{s=1}^{t-1} a_{s}^2 \right)^\frac{2}{3}
+  \left(\sum\limits_{s=1}^{t-1} a_{s}^2\right)^\frac{1}{3}\right) \\
+  &\leq \frac{C \alpha}{\alpha - A}\left(a_t - \sqrt{\sum\limits_{s=1}^{t-1} a_{s}^2}\right)
+\end{align*}
+
+Let $M_t = \max \{a_t, \cdots, a_t\}$. Note that in this case, $a_t = M_t$, and $\sqrt{\sum\limits_{s=1}^{t-1} a_{s}^2}
+\geq M_{t-1}$. Therefore,
+
+\[
+  \min \left\{ \frac{a_{t}^2}{\sqrt[3]{\sum\limits_{s=1}^{t-1} a_{s}^2}}, C a_t \right\} \leq 
+  \frac{C \alpha}{\alpha - A}\left(M_t - M_{t-1}\right)
+\]
+
+Further note that since $a_t \geq 0 \forall t$, $A = (\sum\limits_{s=1}^T a_{s}^2)^\frac{2}{3} \geq
+\min_{t=1,\cdots,T}a_{t}^\frac{4}{3}$. Let $B = \min_{t=1,\cdots,T}a_{t}^\frac{4}{3}$, Therefore,
+
+\[
+  \min \left\{ \frac{a_{t}^2}{\sqrt[3]{\sum\limits_{s=1}^{t-1} a_{s}^2}}, C a_t \right\} \leq 
+  \frac{C \alpha}{\alpha - B}\left(M_t - M_{t-1}\right)
+\]
+
+Therefore, combining the two cases, we have:
+
+\[
+  \min \left\{ \frac{a_{t}^2}{\sqrt[3]{\sum\limits_{s=1}^{t-1} a_{s}^2}}, C a_t \right\} \leq \frac{C \alpha}{\alpha -
+  B}\left(M_t - M_{t-1}\right) + 2 \sqrt[3]{1 + \alpha^2}\left(\sqrt{\sum\limits_{s=1}^t a_{s}^3} -
+  \sqrt{\sum\limits_{s=1}^{t-1} a_{s}^3}\right)
+\]
+
+Therefore, summing from $t=1$ to $T$,
+
+\[
+  \sum\limits_{t=1}^T\min \left\{ \frac{a_{t}^2}{\sqrt[3]{\sum\limits_{s=1}^{t-1} a_{s}^2}}, C a_t \right\} \leq \frac{C
+  \alpha}{\alpha - B}\left(\max\limits_{t=1, \cdots, T} a_t\right) + 2 \sqrt[3]{1 +
+  \alpha^2}\left(\sqrt{\sum\limits_{t=1}^T a_{t}^3}\right)
+\]
+
+\qed
 
 \end{document}
