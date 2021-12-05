@@ -32,14 +32,12 @@
 \usepackage{subcaption}
 \usepackage{float}
 
+% Theorem Handling
 \usepackage{amsmath,amssymb,amsthm}
 \usepackage{cases}
 \usepackage{thmtools}
 \usepackage{thm-restate}
 
-% \newtheorem{theorem}{Theorem}[section]
-% \newtheorem{lemma}[theorem]{Lemma}
-% \newtheorem{proposition}[theorem]{Proposition}
 \declaretheorem{theorem}
 \declaretheorem{lemma}
 \declaretheorem{proposition}
@@ -89,14 +87,27 @@
 
 \maketitle
 
+\begin{abstract}
+  We introduce a new convergence bound for the MADGRAD optimization algorithm which requires no assumption of the
+  boundedness of gradients. MADGRAD, an optimization algorithm in the family of AdaGrad adaptive gradient methods, shows
+  promising results on deep learning optimization problems, outperforming Adam and providing a provable convergence
+  bound (\cite{defazio_adaptivity_nodate}). We additionally show emprical results of MADGRAD and Modernized Dual
+  Averaging (MDA) (\cite{jelassi_dual_2020}) in comparison to Adam and SGD on the CIFAR10
+  dataset (\cite{krizhevsky_learning_2009}).
+\end{abstract}
+
 \section{Introduction}
 
-This paper is concerned with dual averaging algorithms applied to deep learning. So far, we have tested two dual
-averaging algorithms, Modernized Dual Averaging (MDA) (\cite{jelassi_dual_2020}) and MADGRAD
-(\cite{defazio_adaptivity_nodate}), which use Follow the Regularized Leader (FTRL) style algorithms in order to optimize
-deep learning algorithms. For this paper, we have focused on both implementing these algorithms in PyTorch
-(\cite{paszke_pytorch_2019}) and testing them out on the CIFAR10 dataset (\cite{krizhevsky_learning_nodate}). We then
-prove an alternate, scale-free regret bound for the MADGRAD algorithm in Section~\ref{section:theory}.
+Significant literature exists applyting dual averaging algorithms to deep learning style algorithms, most notably in
+AdaGrad (\cite{duchi_adaptive_nodate}). However, analysis of these algorithms using Follow-the-Regularized Leader (FTRL)
+analysis techniques is more rare. Many convergence proofs require assumptions about the boundedness of the domain or the
+boundedness of the gradients of the algorithm. This paper focuses on implementing two dual averaging algorithms,
+Modernized Dual Averaging (MDA) (\cite{jelassi_dual_2020}) and MADGRAD (\cite{defazio_adaptivity_nodate}), which use
+Follow the Regularized Leader (FTRL) style algorithms in order to optimize deep learning algorithms, but do not use FTRL
+style analysis when proving a convergence bound. We first present a simple motivation for each algorithm, then present
+our implementation results for these algorithms in PyTorch (\cite{paszke_pytorch_2019}) on the CIFAR10 dataset
+(\cite{krizhevsky_learning_2009}). We then prove an alternate, scale-free regret bound for the MADGRAD algorithm in
+Section~\ref{section:theory}.
 
 \section{Algorithm Details}
 
@@ -108,7 +119,7 @@ MDA is defined as follows:
   \textbf{Input:} $x_0 \in \R^n$ initial point, $\gamma_k \geq 0$ stepsize sequence, $c_k$ momentum parameter
   sequence. Initialize $s_{-1} = 0$ \\
   \For{$k=0,\cdots,T-1$}{
-    Set the scaling coefficient $\beta_k = \sqrt{k+1}$ and stepsize $\lambda_k = \gamma_k = \gamma\sqrt{k+1}$ \\
+    Set the scaling coefficient $\beta_k = \sqrt{k+1}$ and stepsize $\gamma_k = \gamma\sqrt{k+1}$ \\
     Sample $\xi_k ~ P$ and compute stochastic gradient $g_k = \nabla f(x_k, \xi_k)$. \\
     $s_k = s_{k-1} + \lambda_k g_k$ \\
     $z_{k+1} = x_0 - \frac{s_k}{\beta_k}$ \\
@@ -227,7 +238,7 @@ by:
 \]
 
 Note the extra $\lambda_{k+1}G^2$ in the denominator, which is used to create the following upper bound leveraged in the
-overall convergence proof:
+overall convergence proof proposed by the original authors:
 
 \[
   \sum\limits_{t=0}^k \frac{\lambda_t^2 g_t^2}{\sqrt[3]{\lambda_t G^2 + \sum\limits_{i=0}^{t-1} \lambda_i g_i^2}} \leq
@@ -253,9 +264,9 @@ order to prove the scale-free bound, we make the reduction that $c_t = 1$ for al
 momentum operation, and leaves us with only FTRL iterates. Let us first make a useful proposition. Proving a scale-free
 bound for the whole algorithm will require modification of Lemma~\ref{lemma:1} in order to handle the modified update.
 Lemmas of this form are proved in (\cite{nesterov_quasi-monotone_2015}); however, we were not able to prove a specific
-alternate lemma which would enable a robust convergence bound.  Note that we make no assumption on the size of our
-convex set $K$ used as the feasible set for our algorithm.  Additionally, we make no assumptions about the boundedness
-of subgradients $g_i$. 
+alternate lemma which would enable a robust convergence bound. Note that we make no assumption on the boundedness of our
+convex set $K$ used as the feasible set for our algorithm. Additionally, we make no assumptions about the boundedness of
+subgradients $g_i$. 
 
 \begin{restatable}[Proposition 2 in~\cite{orabona_generalized_2014}: Properties of Fenchel Conjugates of
   Strongly Convex Functions]{proposition}{fenchelprop}\label{prop:1}
@@ -277,9 +288,9 @@ of subgradients $g_i$.
 Let us now define some useful lemmas.
 
 \begin{restatable}[Lemma 1 in~\cite{orabona_generalized_2014}]{lemma}{lemma1}\label{lemma:1}
-  Let $\{\psi_t\}_{t=1}^\infty$ be a sequence of functions defined on a common convex domain $S \subseteq \R^n$ and
-  such that each $\psi_t$ is $\mu_t$-strongly convex with respect to the norm $\|\cdot\|_t$. Let $\|\cdot\|_{t, *}$ be
-  the dual norm of $\| \cdot \|_t$, for $t = 1, 2, \cdots, T$. Then, for any $\bu \in S$,
+  Let $\{\psi_t\}_{t=1}^\infty$ be a sequence of lower semi-continuos functions defined on a common convex domain $S
+  \subseteq \R^n$ and such that each $\psi_t$ is $\mu_t$-strongly convex with respect to the norm $\|\cdot\|_t$. Let
+  $\|\cdot\|_{t, *}$ be the dual norm of $\| \cdot \|_t$, for $t = 1, 2, \cdots, T$. Then, for any $\bu \in S$,
 
   \[
     \Regret _T (\bu) \leq \sum\limits_{t=1}^T \langle g_t, \bu - \bx_t \rangle \leq \psi_{T}(\bu) + \psi_{1}^* (0) +
@@ -494,6 +505,11 @@ Let us bound this regret in three groups.
 
 Substituting these three upper bounds back into (\ref{eq:1}) gives the desired bound. \\
 \qed
+
+\section{Conclusion}
+
+In this work, we have tested implementations of the MADGRAD and MDA algorithms, and proved a convergence bound for
+non-momentumized MADGRAD. Future work includes proving a convergence bound for momentumized MADGRAD.
 
 \newpage
 
