@@ -37,7 +37,7 @@ def main(experiment_name):
             else:
                 opt_type = opt_type.upper()
 
-            plt.plot(step, value, alpha=0.7, label=opt_type)
+            plt.plot(step[50:], value[50:], alpha=0.7, label=opt_type)
 
         plt.title(f"{experiment_name} {run_type_map[run_type]}")
         plt.xlabel("Step")
@@ -45,7 +45,7 @@ def main(experiment_name):
         plt.legend()
 
         exp_name_save = experiment_name.replace(" ", "_")
-        plt.savefig(os.path.join(run_dir, f"{exp_name_save}_{run_type}.png"), dpi=300)
+        plt.savefig(os.path.join(run_dir, f"{exp_name_save}_{run_type}_closeup.png"), dpi=300)
 
 
 if __name__ == "__main__":

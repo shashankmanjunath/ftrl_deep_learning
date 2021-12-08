@@ -119,7 +119,7 @@ MDA is defined as follows:
   \textbf{Input:} $x_0 \in \R^n$ initial point, $\gamma_k \geq 0$ stepsize sequence, $c_k$ momentum parameter
   sequence. Initialize $s_{-1} = 0$ \\
   \For{$k=0,\cdots,T-1$}{
-    Set the scaling coefficient $\beta_k = \sqrt{k+1}$ and stepsize $\gamma_k = \gamma\sqrt{k+1}$ \\
+    Set the scaling coefficient $\beta_k = \sqrt{k+1}$ and stepsize $\lambda_k = \gamma_k\sqrt{k+1}$ \\
     Sample $\xi_k ~ P$ and compute stochastic gradient $g_k = \nabla f(x_k, \xi_k)$. \\
     $s_k = s_{k-1} + \lambda_k g_k$ \\
     $z_{k+1} = x_0 - \frac{s_k}{\beta_k}$ \\
@@ -136,10 +136,10 @@ Note that MDA implements FTRL on the $z_{k+1}$ iterates with the following updat
 \]
 
 This algorithm uses an $L_2$ based regularizer function. The averaging technique used to create $x_{k+1}$, $x_{k+1} = (1
-- c_{k+1})x_k + c_{k+1}z_{k+1}$, allows use of the final iterate, $x_T$, as the algorithm parameters. Removing this and
-directly using the $z_{k+1}$ iterates requires using the averaged iterates as algorithm parameters, i.e. $x_T =
-\frac{1}{T-1}\sum_{i=1}^{T-1} x_i$. This can become infeasible for a large number of rounds or models which require a
-large number of parameters such as deep neural networks.
+- c_{k+1})x_k + c_{k+1}z_{k+1}$, allows use of the final iterate, $x_T$, as the algorithm parameters. Removing the
+averaging technique and directly using the $z_{k+1}$ iterates requires using the averaged iterates as algorithm
+parameters, i.e. $x_T = \frac{1}{T-1}\sum_{i=1}^{T-1} x_i$. This can become infeasible for a large number of rounds or
+models which require a large number of parameters such as deep neural networks.
 
 MADGRAD implements a similar algorithm with a slightly different regularizer. We denote element-wise multiplication of
 vectors (Hadamard product) by $\circ$.
@@ -151,7 +151,7 @@ vectors (Hadamard product) by $\circ$.
   Initialize $s_0= 0$ and $\nu_0 = 0$ \\
   \For{$k=0,\cdots,T-1$}{
     Sample $\xi_k ~ P$ and compute stochastic gradient $g_k = \nabla f(x_k, \xi_k)$. \\
-    Set $\lambda_k = \gamma_k = \gamma\sqrt{k+1}$ \\
+    Set $\lambda_k = \gamma_k\sqrt{k+1}$ \\
     $s_{k+1} = s_{k} + \lambda_k g_k$ \\
     $\nu_{k+1} = \nu_k + \lambda_k (g_k \circ g_k)$ \\
     $z_{k+1} = x_0 - \frac{1}{\sqrt[3]{\nu_{k+1}} + \epsilon}\circ s_{k+1}$ \\
@@ -336,7 +336,7 @@ in a per-coordinate manner. We additionally only handle the constant learning ra
   \|_{A_t}$. The regret of non-momentumized MADGRAD satisfies:
 
   \begin{align*}
-    \Regret_T(\bu) \leq \sum\limits_{d=1}^D \frac{(\bu_d - x_{0,d})}{2\sqrt[3]{\sum\limits_{i=1}^{T} \lambda_i
+    \Regret_T(\bu) \leq \sum\limits_{d=1}^D \frac{(\bu_d - x_{0,d})^2}{2\sqrt[3]{\sum\limits_{i=1}^{T} \lambda_i
         g_{i,d}^2}} + \frac{3}{2}\left(\sum\limits_{i=1}^T \lambda_i g_{i,d}^2\right)^\frac{2}{3} +& 2
         \sqrt{T-1}\left(\sum_{i=1}^{T-1} \lambda_i g_{i,d}^2\right)^\frac{2}{3}(1 + \min_{t \leq
         T}(\sqrt{\lambda_t}|g_{t,d}|)^\frac{4}{3}) \max_{t \leq T} \sqrt{\lambda_t}|g_{td}| \\ &+ 2\sqrt[3]{1 + (1 +
@@ -347,7 +347,7 @@ in a per-coordinate manner. We additionally only handle the constant learning ra
 
 \proof Note that $\psi_t (x) = \frac{1}{2} \| \bx - \bx_0\|_{A_t}^2$, where $A_t = \diag(\alpha_t)$. For this
 regularizer, $\alpha_t = \sqrt[3]{\sum\limits_{i=1}^{t-1} \lambda_i g_{i}^2} \in \R^D$. Let $L_t = \sum\limits_{i=1}^t
-\lambda_i g_i$.Let us perform this analysis per-coordinate.
+\lambda_i g_i$. Let us perform this analysis per-coordinate.
 
 \[
   \psi_{t,d}(\bx) = \frac{1}{2} (\bx_d - \bx_{0,d})\sqrt[3]{\sum\limits_{i=1}^{t-1} \lambda_i g_{id}^2}(\bx_d -
@@ -358,7 +358,7 @@ Let $\eta_{t,d} = \frac{1}{\sqrt[3]{\sum\limits_{i=1}^{t-1} \lambda_i g_{id}^2}}
 
 \begin{align*}
   \psi_{t,d} (\bx) &= \frac{1}{\eta_{t,d}} \psi_d(\bx) \\
-  \psi_d(\bx) &= \frac{1}{2} (\bx_d - \bx_{0,d})
+  \psi_d(\bx) &= \frac{1}{2} (\bx_d - \bx_{0,d})^2
 \end{align*}
 
 Since $A_t$ is a diagonal matrix, $\psi_t(\bx)$ is $\min_{d \leq D} \sqrt[3]{\sum\limits_{i=1}^{t-1} \lambda_i
