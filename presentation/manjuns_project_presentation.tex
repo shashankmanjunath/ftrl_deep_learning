@@ -149,7 +149,7 @@
 
       \[
         z_{k+1} = \argmin_{x \in \R^n}\left\{\langle \sum\limits_{i=1}^{k}\lambda_i g_i, x \rangle + \frac{1}{2}\|x
-        - x_0\|_{A_k}\right\}
+        - x_0\|_{A_k}^2\right\}
       \]
 
     \item $A_t = \diag\left(\sqrt[3]{\sum\limits_{i=1}^{t} \lambda_i (g_{i} \circ g_i)}\right)$
@@ -286,10 +286,10 @@
   \frametitle{Proof Intuition}
   \begin{itemize}
     \item Our proof technique follows (Orabona and P\`al, 2015) for Scale-free Online Linear Opimization FTRL (SOLO FTRL)
-    \item Our regularizer, $\psi_t(x) = \frac{1}{2}\|\bx - \bx_0\|_{A_t}$, is defined by a diagonal matrix, $A_t =
+    \item Our regularizer, $\psi_t(x) = \frac{1}{2}\|\bx - \bx_0\|_{A_t}^2$, is defined by a diagonal matrix, $A_t =
       \diag\left(\sqrt[3]{\sum\limits_{i=1}^{t-1} \lambda_i g_{i}^2}\right)$
     \item $\psi_t(\bx)$ is $\min_{d \leq D} \sqrt[3]{\sum\limits_{i=1}^{t-1} \lambda_i g_{i,d}^2}$-strongly convex
-    \item Let $\eta_{t,d} = \frac{1}{\sqrt[3]{\sum_{i=1}^{t-1}}\lambda_i g_{i,d}^2}$
+    \item Let $\eta_{t,d} = \frac{1}{\sqrt[3]{\sum_{i=1}^{t-1}\lambda_i g_{i,d}^2}}$
     \item We tighten this bound by analyzing in a per-parameter fashion by defining our regularizer in a per-coordinate
       manner: $\psi_{t,d}(x) = \frac{1}{\eta_{t,d}} \psi_{d}(\bx) = \frac{1}{2\eta_{t,d}}(\bx_d - \bx_{0,d})^2$
     \item Since $\psi_d(\bx): \R \rightarrow \R$, we can find the strong convexity constant by finding the lower bound
@@ -304,7 +304,7 @@
     \item We start with Lemma 1, and upper bound the $B_{\psi_{t}^*}(-\theta_t, -\theta_{t-1}) - \psi_{t}^* (-\theta_t)
       + \psi_{t+1}^*(-\theta_t) \leq B_{\psi_{t}^*}(-\theta_t, -\theta_{t-1})$ in two ways using the properties of
       Fenchel conjugates, with the upper bound being the minimum of these two terms. Note that $H =
-      \left(\sum\limits_{i=1}^{t-1} \lambda_i g_{i,d}^2\right)^\frac{2}{3} \sqrt{t-1}$
+      \left(\sum\limits_{i=1}^{T-1} \lambda_i g_{i,d}^2\right)^\frac{2}{3} \sqrt{T-1}$
 
       \begin{align*}
         \Regret_T(\bu) &\leq \sum\limits_{d=1}^D \frac{1}{\eta_{T+1}}\psi_{d}(\bu) \frac{1}{\eta_1}\psi_{d}^*(0) \\
@@ -324,7 +324,7 @@
 \begin{frame}
   \frametitle{Conclusion}
   \begin{itemize}
-    \item In this work, we implement and analyze the performand of MDA and MADGRAD algorithms on the CIFAR10 dataset
+    \item In this work, we implement and analyze the performance of MDA and MADGRAD algorithms on the CIFAR10 dataset
     \item We then prove an alternate, scale-free regret bound for the MADGRAD algorithm
   \end{itemize}
 \end{frame}

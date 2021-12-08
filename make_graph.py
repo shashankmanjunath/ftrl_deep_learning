@@ -18,6 +18,7 @@ def main(experiment_name):
 
     for run_type in run_types:
         runs = [x for x in os.listdir(run_dir) if run_type in x and x.endswith(".csv")]
+        runs = sorted(runs)
         opt_data = []
 
         plt.figure()
@@ -28,16 +29,23 @@ def main(experiment_name):
             step = opt_data["Step"].to_list()
             value = opt_data["Value"].to_list()
 
+            opt_color = None
             if opt_type == "sgd":
                 opt_type = "SGD+M"
+                opt_color = "r"
             elif "mda" in opt_type:
                 opt_type = "MDA"
+                opt_color = "g"
             elif "adam" in opt_type:
                 opt_type = "Adam"
+                opt_color = "b"
             else:
                 opt_type = opt_type.upper()
 
-            plt.plot(step[50:], value[50:], alpha=0.7, label=opt_type)
+            if opt_color:
+                plt.plot(step[50:], value[50:], opt_color, alpha=0.7, label=opt_type)
+            else:
+                plt.plot(step[50:], value[50:], alpha=0.7, label=opt_type)
 
         plt.title(f"{experiment_name} {run_type_map[run_type]}")
         plt.xlabel("Step")
