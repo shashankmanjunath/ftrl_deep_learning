@@ -16,6 +16,6 @@ focused on both implementing these algorithms in PyTorch and testing them out on
 So far, we have successfully replicated results on the CIFAR10 dataset for the MDA, MADGRAD and Stochastic Gradient
 Descent with Momentum (SGD+M) algorithms. We show our test accuracy and test loss results in the plot below.
 
-Test Accuracy                             | Test Loss
-:-------------------------:               | :-------------------------:
-![](./ftrl_dl_data/CIFAR-10_test_acc.png) | ![](./ftrl_dl_data/CIFAR-10_test_loss.png)
+Test Accuracy                                     | Test Loss
+:-------------------------:                       | :-------------------------:
+![](./ftrl_dl_data/CIFAR-10_test_acc_closeup.png) | ![](./ftrl_dl_data/CIFAR-10_test_loss_closeup.png)
